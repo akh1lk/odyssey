@@ -1,0 +1,4 @@
+(test
+(libraries ounit2 odyssey)
+ (deps (glob_files_rec ../data/*))
+ (name test_odyssey))
