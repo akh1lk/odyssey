@@ -6,7 +6,7 @@ type prop =
   | Implies of prop * prop
 
 type t = prop
-type data = string
+type data = string list
 (* TODO: change this [data] to a hash table that takes in a string and returns
    true or false (to map from variables to truth values)*)
 
@@ -24,6 +24,6 @@ let cnf prop = Atom false
    propEval. TODO: Implement these functions according to the specification in
    mli*)
 let print_prop prop = ()
-let create_data = ()
-let parse_prop = ()
-let eval_prop = ()
+let create_data (data_list : string list) : data = [ "" ]
+let parse_prop (var_data : data) (expr : string) : t = Atom true
+let eval_prop (proposition : t) = true
