@@ -1,23 +1,22 @@
-(** abstract data type for propositions *)
 type t
+(** abstract data type for propositions *)
 
-(** stores truth values assigned to a given variable *)
 type data
+(** stores truth values assigned to a given variable *)
 
-(** Raised when a proposition is invalid.  *)
 exception InvalidProposition
+(** Raised when a proposition is invalid. *)
 
-(* Functionalities we need to implement: parser, printer, evaluator!.  *)
+(* Functionalities we need to implement: parser, printer, evaluator!. *)
 
-(** [create_data str_list] str_list is [["var1 true/false"; "var2 true"; ... ]] 
-returns [data] with truth values assigned to variables. *)
-val create_data: string list -> data
+val create_data : string list -> data
+(** [create_data str_list] str_list is [["var1 true/false"; "var2 true"; ... ]]
+    returns [data] with truth values assigned to variables. *)
 
-(** [parse_prop data str] Parses [str] and returns a proposition. 
-Raises: [InvalidProposition] if [prop] is an invalid proposition.*)
-val parse_prop: string -> t
+val parse_prop : string -> t
+(** [parse_prop data str] Parses [str] and returns a proposition. Raises:
+    [InvalidProposition] if [prop] is an invalid proposition.*)
 
-(** [eval_prop prop] evaluates [prop] and prints intermediate steps. 
-Requires: [prop] is a valid proposition *)
-val eval_prop: t -> bool
-
+val eval_prop : t -> data -> bool
+(** [eval_prop prop] evaluates [prop] and prints intermediate steps. Requires:
+    [prop] is a valid proposition *)

@@ -25,4 +25,11 @@ exception InvalidProposition
 let print_prop prop = ()
 let create_data (data_list : string list) : data = StringHashtbl.create 1
 let parse_prop (expr : string) : t = Var ""
-let eval_prop (proposition : t) = true
+
+let rec eval_prop (proposition : t) (info : data) =
+  match proposition with
+  | Var x -> StringHashtbl.find info x
+  | Not p -> not (eval_prop p info)
+  | And (p1, p2) -> eval_prop p1 info && eval_prop p2 info
+  | Or (p1, p2) -> eval_prop p1 info || eval_prop p2 info
+  | Implies (p1, p2) -> (not (eval_prop p1 info)) || eval_prop p2 info
