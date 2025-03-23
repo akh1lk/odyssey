@@ -15,7 +15,7 @@ val create_data: string list -> data
 
 (** [parse_prop data str] Parses [str] and returns a proposition. 
 Raises: [InvalidProposition] if [prop] is an invalid proposition.*)
-val parse_prop: data -> string -> t
+val parse_prop: string -> t
 
 (** [eval_prop prop] evaluates [prop] and prints intermediate steps. 
 Requires: [prop] is a valid proposition *)
