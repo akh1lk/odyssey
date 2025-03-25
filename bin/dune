@@ -1,4 +1,4 @@
 (executable
  (public_name odyssey)
  (name main)
- (libraries odyssey))
+ (libraries odyssey ANSITerminal))
