@@ -20,9 +20,7 @@ exception InvalidProposition
 let print_prop prop =
   let rec aux = function
     | Var x -> x
-    | Not p ->
-        "¬(" ^ aux p
-        ^ ")" (* Always enclose the operand of Not in parentheses *)
+    | Not p -> "¬" ^ aux p ^ ""
     | And (p1, p2) -> "(" ^ aux p1 ^ " ∧ " ^ aux p2 ^ ")"
     | Or (p1, p2) -> "(" ^ aux p1 ^ " ∨ " ^ aux p2 ^ ")"
     | Implies (p1, p2) -> "(" ^ aux p1 ^ " → " ^ aux p2 ^ ")"
@@ -40,110 +38,87 @@ let create_data (data_list : string list) : data =
     data_list;
   table
 
-let parse_prop (expr : string) : t =
-  (* Preprocess the input string to add spaces around operators and
-     parentheses *)
-  let preprocess str =
-    str
-    |> Str.global_replace (Str.regexp "~") " ~ "
-    |> Str.global_replace (Str.regexp "\\^") " ^ "
-    |> Str.global_replace (Str.regexp "v") " v "
-    |> Str.global_replace (Str.regexp "=>") " => "
-    |> Str.global_replace (Str.regexp "(") " ( "
-    |> Str.global_replace (Str.regexp ")") " ) "
+let split_list_by_prop (expr_lst : string list) (find_symbol : string) =
+  let rec split_expr_helper lst find_symbol left_list =
+    match lst with
+    | [] -> raise InvalidProposition
+    | element :: rest ->
+        if element = find_symbol then (List.rev left_list, rest)
+        else split_expr_helper rest find_symbol (element :: left_list)
   in
-  let tokens = Str.split (Str.regexp "[ \t]+") (preprocess expr) in
-  Printf.printf "Tokens: %s\n" (String.concat " " tokens);
-  (* Debug: Print tokens *)
-  let rec parse = function
-    | [] ->
-        Printf.printf "Error: Empty token list\n";
-        (* Debug: Empty token list *)
-        raise InvalidProposition
-    | "~" :: rest ->
-        Printf.printf "Parsing NOT operator\n";
-        (* Debug: Parsing NOT *)
-        let p, rest' = parse rest in
-        (Not p, rest')
-    | "(" :: rest -> (
-        Printf.printf "Parsing expression inside parentheses\n";
-        (* Debug: Parentheses *)
-        let p1, rest' = parse rest in
-        match rest' with
-        | "^" :: rest'' -> (
-            Printf.printf "Parsing AND operator\n";
-            (* Debug: Parsing AND *)
-            let p2, rest''' = parse rest'' in
-            match rest''' with
-            | ")" :: rest'''' -> (And (p1, p2), rest'''')
-            | _ ->
-                Printf.printf "Error: Missing closing parenthesis after AND\n";
-                (* Debug *)
-                raise InvalidProposition)
-        | "v" :: rest'' -> (
-            Printf.printf "Parsing OR operator\n";
-            (* Debug: Parsing OR *)
-            let p2, rest''' = parse rest'' in
-            match rest''' with
-            | ")" :: rest'''' -> (Or (p1, p2), rest'''')
-            | _ ->
-                Printf.printf "Error: Missing closing parenthesis after OR\n";
-                (* Debug *)
-                raise InvalidProposition)
-        | "=>" :: rest'' -> (
-            Printf.printf "Parsing IMPLIES operator\n";
-            (* Debug: Parsing IMPLIES *)
-            let p2, rest''' = parse rest'' in
-            match rest''' with
-            | ")" :: rest'''' -> (Implies (p1, p2), rest'''')
-            | _ ->
-                Printf.printf
-                  "Error: Missing closing parenthesis after IMPLIES\n";
-                (* Debug *)
-                raise InvalidProposition)
-        | ")" :: rest'' ->
-            Printf.printf "Closing parenthesis found\n";
-            (* Debug: Closing parenthesis *)
-            (p1, rest'')
-        | _ ->
-            Printf.printf "Error: Invalid token inside parentheses\n";
-            (* Debug *)
-            raise InvalidProposition)
-    | var :: rest ->
-        Printf.printf "Parsing variable: %s\n" var;
-        (* Debug: Parsing variable *)
-        (Var var, rest)
+  split_expr_helper expr_lst find_symbol []
+
+let rec find_prop_aux lst prop =
+  match lst with
+  | [] -> false
+  | h :: t -> if h = prop then true else find_prop_aux t prop
+
+let rec find_prop lst prop_lst =
+  match prop_lst with
+  | [] -> raise InvalidProposition
+  | h :: t -> if find_prop_aux lst h then h else find_prop lst t
+
+let split_string str =
+  let expr_lst = Str.split (Str.regexp " ") str in
+  let rec combine_with_parenthesis parenbool combinedelement lst =
+    match lst with
+    | [] -> []
+    | h :: t ->
+        if parenbool then
+          if h = ")" then combinedelement :: combine_with_parenthesis false "" t
+          else
+            combine_with_parenthesis true
+              (if combinedelement = "" then h else combinedelement ^ " " ^ h)
+              t
+        else if h = "(" then combine_with_parenthesis true "" t
+        else h :: combine_with_parenthesis false "" t
   in
-  let prop, remaining = parse tokens in
-  if remaining = [] then (
-    Printf.printf "Parsing successful: %s\n" (print_prop prop);
-    (* Debug: Success *)
-    prop)
-  else (
-    Printf.printf "Error: Unprocessed tokens remaining: %s\n"
-      (String.concat " " remaining);
-    (* Debug *)
-    raise InvalidProposition)
+  combine_with_parenthesis false "" expr_lst
+
+let process_string_list lst =
+  if List.length lst = 1 then
+    match lst with
+    | h :: [] -> Str.split (Str.regexp " ") h
+    | _ -> failwith "Nah"
+  else lst
+
+let parse_prop expr =
+  let expression_lst = split_string expr in
+  let rec parse_prop_helper expr_lst =
+    try
+      let proposition = find_prop expr_lst [ "->"; "v"; "^"; "~" ] in
+      let unprocessed_left, unprocessed_right =
+        split_list_by_prop expr_lst proposition
+      in
+      let left = process_string_list unprocessed_left in
+      let right = process_string_list unprocessed_right in
+      match proposition with
+      | "->" -> Implies (parse_prop_helper left, parse_prop_helper right)
+      | "v" -> Or (parse_prop_helper left, parse_prop_helper right)
+      | "^" -> And (parse_prop_helper left, parse_prop_helper right)
+      | "~" -> Not (parse_prop_helper (left @ right))
+      | _ -> raise InvalidProposition
+    with _ -> (
+      match expr_lst with
+      | element :: [] -> Var element
+      | _ -> raise InvalidProposition)
+  in
+  parse_prop_helper expression_lst
 
 let rec eval_prop (proposition : t) (info : data) =
   match proposition with
   | Var x ->
       Printf.printf "Evaluating variable: %s\n" x;
-      (* Debug: Evaluating variable *)
       StringHashtbl.find info x
   | Not p ->
       Printf.printf "Evaluating NOT\n";
-      (* Debug: Evaluating NOT *)
       not (eval_prop p info)
   | And (p1, p2) ->
       Printf.printf "Evaluating AND\n";
-      (* Debug: Evaluating AND *)
       eval_prop p1 info && eval_prop p2 info
   | Or (p1, p2) ->
       Printf.printf "Evaluating OR\n";
-      (* Debug: Evaluating OR *)
       eval_prop p1 info || eval_prop p2 info
   | Implies (p1, p2) ->
       Printf.printf "Evaluating IMPLIES\n";
-      (* Debug: Evaluating IMPLIES *)
       (not (eval_prop p1 info)) || eval_prop p2 info
