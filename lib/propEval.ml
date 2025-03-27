@@ -69,23 +69,23 @@ let rec find_prop lst prop_lst =
   | [] -> raise InvalidProposition
   | h :: t -> if find_prop_aux lst h then h else find_prop lst t
 
+let rec preprocess_lst lst = match lst with 
+|[] -> []
+|h::t -> if (String.length h) =2 then (Str.string_before h 1)::(Str.string_after h 1)::(preprocess_lst t) else h::(preprocess_lst t)
 let split_string str =
   let expr_lst = Str.split (Str.regexp " ") str in
-  let rec combine_with_parenthesis parenbool combinedelement lst =
+  let rec combine_with_parenthesis parenbool combinedelement lst parencount =
     match lst with
     | [] -> []
     | h :: t ->
         if parenbool then
-          if h = ")" then combinedelement :: combine_with_parenthesis false "" t
-          else
-            combine_with_parenthesis true
-              (if combinedelement = "" then h else combinedelement ^ " " ^ h)
-              t
-        else if h = "(" then combine_with_parenthesis true "" t
-        else h :: combine_with_parenthesis false "" t
+          if h = ")" then (if parencount=0 then combinedelement :: combine_with_parenthesis false "" t 0 else combine_with_parenthesis true (combinedelement^ " "^ h) t (parencount-1))
+          else (if h = "(" then combine_with_parenthesis true (combinedelement^" "^h) t (parencount+1) else combine_with_parenthesis true (if combinedelement="" then h else (combinedelement^" "^h)) t parencount)
+        else if h = "(" then combine_with_parenthesis true "" t 0 
+        else h :: combine_with_parenthesis false "" t 0
   in
-  combine_with_parenthesis false "" expr_lst
-
+  combine_with_parenthesis false "" expr_lst 0
+(**)
 let process_string_list lst =
   if List.length lst = 1 then
     match lst with
