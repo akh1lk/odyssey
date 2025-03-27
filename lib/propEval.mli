@@ -20,6 +20,8 @@ val create_data : string list -> data
     truth values assigned to variables. *)
 val add_var: string*bool -> data -> data
 
+val data_to_string: data -> string
+
 val unquantified_variables : data -> t -> string list
 (**[unquantified_variables data prop] returns a list of the variables in the proposition that do not have a quantification*)
 
@@ -32,4 +34,3 @@ val eval_prop : t -> data -> bool
 (** [eval_prop prop data] evaluates the proposition [prop] using the truth
     values provided in [data]. Requires: No unquantified variables*)
 
-(*TODO: Add to_string method for DATA!*)

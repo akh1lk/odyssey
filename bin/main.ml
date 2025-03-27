@@ -15,7 +15,6 @@ let rec prop_input () =
      so, type 'Help'. Otherwise, input your proposition \n";
   let user_input = read_line () in
   match user_input with
-  (*TODO: EXPLAIN PRECENDENCE RULES HERE*)
   | "Help" ->
       print_string [ magenta ]
         "To Input a Valid Proposition, Please type your proposition with the \
@@ -25,9 +24,11 @@ let rec prop_input () =
          IMPLIES: ->\n\
          NOT: ~\n\
          BICONDITIONAL: <->\n\
-         Additionally, you MUST put spaces between everything. This includes \
-         paranthesis. See the example below:\n\
-         '( x v y ) -> z' is a valid Proposition \n";
+         Additionally, you must not wrap your entire proposition in Parenthesis:\n\
+         '(x v y) -> z' is a valid Proposition \n\
+         '((x v y)->z)' is NOT a valid proposition \n\
+         If no parentheses are specified then the conventional precedence of \
+         operations is followed in mathematics.";
       prop_input ()
   | _ -> (
       try
@@ -110,14 +111,25 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
     "If you would like to evaluate your proposition, then type 'Evaluate Prop' \n";
   print_string [ green ] "If you would like to exit, type 'Exit' \n";
   (match (prop, data) with
-  (*TODO PRINT PROP AND DATA*)
   | Some p, Some d ->
-      print_string [ red ] "You currently have a proposition and data \n"
-  | Some p, None -> print_string [ red ] "You have a proposition but no data \n"
+      print_string [ red ]
+        ("Current Prop: "
+        ^ Odyssey.PropEval.print_prop p
+        ^ " \nCurrent Data: "
+        ^ Odyssey.PropEval.data_to_string d
+        ^ " \n")
+  | Some p, None ->
+      print_string [ red ]
+        ("Current Prop: "
+        ^ Odyssey.PropEval.print_prop p
+        ^ " \nCurrent Data: None" ^ " \n")
   | None, Some d ->
-      print_string [ red ] "You have no proposition but have data \n"
+      print_string [ red ]
+        ("Current Prop: None" ^ " \nCurrent Data: "
+        ^ Odyssey.PropEval.data_to_string d
+        ^ " \n")
   | None, None ->
-      print_string [ red ] "You currently have no proposition or data \n");
+      print_string [ red ] "Current Prop: None \nCurrent Data: None \n");
   let user_input = read_line () in
   match user_input with
   | "Prop Input" ->

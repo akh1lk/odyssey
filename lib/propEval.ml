@@ -49,6 +49,9 @@ let add_var (var, var_value) data =
   StringHashtbl.add data var var_value;
   data
 
+let data_to_string data = 
+  StringHashtbl.fold (fun x y acc -> "("^x^" : " ^ string_of_bool y ^") "^acc) data ""
+
 let split_list_by_prop (expr_lst : string list) (find_symbol : string) =
   let rec split_expr_helper lst find_symbol left_list =
     match lst with
