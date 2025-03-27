@@ -72,8 +72,25 @@ let rec find_prop lst prop_lst =
 let rec preprocess_lst lst = match lst with 
 |[] -> []
 |h::t -> if (String.length h) =2 then (Str.string_before h 1)::(Str.string_after h 1)::(preprocess_lst t) else h::(preprocess_lst t)
+
+let rec t_aux acc = function
+  | [] -> acc
+  | "<->" :: t -> t_aux (acc @ [ "<->" ]) t
+  | "->" :: t -> t_aux (acc @ [ "->" ]) t
+  | s :: t ->
+      t_aux (acc @ List.map (String.make 1) (List.of_seq (String.to_seq s))) t
+
+(** [tokenizer s] returns s split into variables, parentheses and operators.
+    Example: [tokenizer "(x-> y) <-> z"] returns
+    ["("; "x"; "->"; "y"; ")"; "<->"; "z"]*)
+let tokenizer s =
+  Str.(full_split (regexp "\\(->\\|<->\\)") s)
+  |> List.map (function Str.Text t | Str.Delim t -> t)
+  |> t_aux []
+  |> List.filter (fun s -> s <> " ")
+
 let split_string str =
-  let expr_lst = Str.split (Str.regexp " ") str in
+  let expr_lst = tokenizer str in
   let rec combine_with_parenthesis parenbool combinedelement lst parencount =
     match lst with
     | [] -> []
@@ -89,7 +106,7 @@ let split_string str =
 let process_string_list lst =
   if List.length lst = 1 then
     match lst with
-    | h :: [] -> Str.split (Str.regexp " ") h
+    | h :: [] -> tokenizer h
     | _ -> failwith "Nah"
   else lst
 
