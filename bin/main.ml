@@ -19,16 +19,18 @@ let rec prop_input () =
       print_string [ magenta ]
         "To Input a Valid Proposition, Please type your proposition with the \
          following inputs:\n\
-         OR: v \n\
-         AND: ^\n\
-         IMPLIES: ->\n\
          NOT: ~\n\
+         AND: ^ \n\
+         OR: v\n\
+         IMPLIES: ->\n\
          BICONDITIONAL: <->\n\
          Additionally, you must not wrap your entire proposition in Parenthesis:\n\
          '(x v y) -> z' is a valid Proposition \n\
          '((x v y)->z)' is NOT a valid proposition \n\
          If no parentheses are specified then the conventional precedence of \
-         operations is followed in mathematics.";
+         operations is followed in mathematics. The order in which the \
+         operators are displayed in the instructions is from highest priority \
+         to lowest priority";
       prop_input ()
   | _ -> (
       try
@@ -41,8 +43,9 @@ let rec prop_input () =
 
 let rec variable_input () =
   print_string [ blue ]
-    "Please input your variables in exactly the format provided. \n\
-    \  'x true, y false, z true' \n";
+    "Please input your variables in exactly the format provided. NOTE: Make \
+     sure to not put spaces between the variable name and comma! \n\
+    \  'x true,y false,z true' \n";
   let user_input = read_line () in
   try
     let data_list = String.split_on_char ',' user_input in
@@ -109,6 +112,9 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
      'Variable Add' \n";
   print_string [ green ]
     "If you would like to evaluate your proposition, then type 'Evaluate Prop' \n";
+  print_string [ green ]
+    "If you like to export to LaTex via a copy-pastable string, then type \
+     'Latex Export'";
   print_string [ green ] "If you would like to exit, type 'Exit' \n";
   (match (prop, data) with
   | Some p, Some d ->
@@ -157,6 +163,15 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
           print_string [ red ]
             "You do not have a proposition and data. Once you have both, you \
              can evaluate your proposition \n")
+  | "Latex Export" -> (
+      match prop with
+      | Some p ->
+          print_string [ red ]
+            ("Copy Paste this into Latex: \n" ^ Odyssey.PropEval.latex_of_prop p)
+      | None ->
+          print_string [ red ]
+            "You do not have a proposition to export to Latex";
+          user_loop prop data)
   | "Exit" -> ()
   | _ ->
       print_string [ red ]

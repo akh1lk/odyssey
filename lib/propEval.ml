@@ -252,3 +252,30 @@ let rec eval_prop (proposition : t) (info : data) =
       | false, false ->
           print_string [ blue ] (print_prop proposition ^ " is True \n \n");
           prop1 = prop2)
+
+(* Hierarchy of prop (high->low): Not=3, And=2, Or=2, Implies=1 *)
+let rec latex_of_prop_with_prec (p : prop) (prec : int) : string =
+  let wrap needed s = if needed then "(" ^ s ^ ")" else s in
+  match p with
+  | Var x -> x
+  | Not p1 ->
+      let inner = latex_of_prop_with_prec p1 3 in
+      "\\lnot " ^ inner
+  | And (p1, p2) ->
+      let s1 = latex_of_prop_with_prec p1 2 in
+      let s2 = latex_of_prop_with_prec p2 2 in
+      wrap (prec > 2) (s1 ^ " \\land " ^ s2)
+  | Or (p1, p2) ->
+      let s1 = latex_of_prop_with_prec p1 1 in
+      let s2 = latex_of_prop_with_prec p2 1 in
+      wrap (prec > 1) (s1 ^ " \\lor " ^ s2)
+  | Implies (p1, p2) ->
+      let s1 = latex_of_prop_with_prec p1 0 in
+      let s2 = latex_of_prop_with_prec p2 0 in
+      wrap (prec > 0) (s1 ^ " \\rightarrow " ^ s2)
+  | Biconditional (p1, p2) -> 
+    let s1 = latex_of_prop_with_prec p1 0 in
+    let s2 = latex_of_prop_with_prec p2 0 in
+    wrap (prec > 0) ((s1 ^ " \\rightarrow " ^ s2)^" \\land "^(s2 ^ " \\rightarrow " ^ s1))
+
+let latex_of_prop p = "$" ^ latex_of_prop_with_prec p 0 ^ "$"
