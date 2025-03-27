@@ -1,3 +1,5 @@
+open ANSITerminal
+
 type prop =
   | Var of string
   | Not of prop
@@ -20,7 +22,7 @@ exception InvalidProposition
 let print_prop prop =
   let rec aux = function
     | Var x -> x
-    | Not p -> "¬" ^ aux p ^ ""
+    | Not p -> "¬(" ^ aux p ^ ")"
     | And (p1, p2) -> "(" ^ aux p1 ^ " ∧ " ^ aux p2 ^ ")"
     | Or (p1, p2) -> "(" ^ aux p1 ^ " ∨ " ^ aux p2 ^ ")"
     | Implies (p1, p2) -> "(" ^ aux p1 ^ " → " ^ aux p2 ^ ")"
@@ -37,6 +39,10 @@ let create_data (data_list : string list) : data =
       | _ -> raise InvalidProposition)
     data_list;
   table
+
+let add_var (var, var_value) data =
+  StringHashtbl.add data var var_value;
+  data
 
 let split_list_by_prop (expr_lst : string list) (find_symbol : string) =
   let rec split_expr_helper lst find_symbol left_list =
@@ -105,20 +111,99 @@ let parse_prop expr =
   in
   parse_prop_helper expression_lst
 
+let rec find_variables (prop : t) =
+  match prop with
+  | Var x -> [ x ]
+  | Not p -> find_variables p
+  | And (p1, p2) -> find_variables p1 @ find_variables p2
+  | Or (p1, p2) -> find_variables p1 @ find_variables p2
+  | Implies (p1, p2) -> find_variables p1 @ find_variables p2
+
+let unquantified_variables data prop =
+  let rec unquantified_variables_helper data lst =
+    match lst with
+    | [] -> []
+    | h :: t -> (
+        try
+          let _ = StringHashtbl.find data h in
+          unquantified_variables_helper data t
+        with _ -> h :: unquantified_variables_helper data t)
+  in
+  unquantified_variables_helper data (find_variables prop)
+
 let rec eval_prop (proposition : t) (info : data) =
   match proposition with
   | Var x ->
-      Printf.printf "Evaluating variable: %s\n" x;
+      let var_value = StringHashtbl.find info x in
+      print_string [ yellow ]
+        ("Evaluating Variable: " ^ x ^ " to " ^ string_of_bool var_value
+       ^ " \n \n");
       StringHashtbl.find info x
-  | Not p ->
-      Printf.printf "Evaluating NOT\n";
-      not (eval_prop p info)
-  | And (p1, p2) ->
-      Printf.printf "Evaluating AND\n";
-      eval_prop p1 info && eval_prop p2 info
-  | Or (p1, p2) ->
-      Printf.printf "Evaluating OR\n";
-      eval_prop p1 info || eval_prop p2 info
-  | Implies (p1, p2) ->
-      Printf.printf "Evaluating IMPLIES\n";
-      (not (eval_prop p1 info)) || eval_prop p2 info
+  | Not p -> (
+      print_string [ red ]
+        ("Evaluating '~' Statement " ^ "~(" ^ print_prop p ^ "): \n \n");
+      let final_value = eval_prop p info in
+      match final_value with
+      | true ->
+          print_string [ red ] ("~" ^ print_prop p ^ " is False \n \n");
+          not final_value
+      | false ->
+          print_string [ red ] ("~" ^ print_prop p ^ " is True \n \n");
+          not final_value)
+  | And (p1, p2) -> (
+      print_string [ green ]
+        ("Evaluating '^' Statement (" ^ print_prop p1 ^ ") ^ (" ^ print_prop p2
+       ^ "): \n \n");
+      let prop1 = eval_prop p1 info in
+      let prop2 = eval_prop p2 info in
+      match (prop1, prop2) with
+      | true, true ->
+          print_string [ green ] (print_prop proposition ^ " is True \n \n");
+          prop1 && prop2
+      | true, false ->
+          print_string [ green ] (print_prop proposition ^ " is False \n \n");
+          prop1 && prop2
+      | false, true ->
+          print_string [ green ] (print_prop proposition ^ " is False \n \n");
+          prop1 && prop2
+      | false, false ->
+          print_string [ green ] (print_prop proposition ^ " is False \n \n");
+          prop1 && prop2)
+  | Or (p1, p2) -> (
+      print_string [ magenta ]
+        ("Evaluating 'v' Statement (" ^ print_prop p1 ^ ")" ^ " v " ^ "("
+       ^ print_prop p2 ^ "): \n \n");
+      let prop1 = eval_prop p1 info in
+      let prop2 = eval_prop p2 info in
+      match (prop1, prop2) with
+      | true, true ->
+          print_string [ magenta ] (print_prop proposition ^ " is True \n \n");
+          prop1 || prop2
+      | true, false ->
+          print_string [ magenta ] (print_prop proposition ^ " is True \n \n");
+          prop1 || prop2
+      | false, true ->
+          print_string [ magenta ] (print_prop proposition ^ " is True \n \n");
+          prop1 || prop2
+      | false, false ->
+          print_string [ magenta ] (print_prop proposition ^ " is False \n \n");
+          prop1 || prop2)
+  | Implies (p1, p2) -> (
+      print_string [ blue ]
+        ("Evaluating '->' Statement: " ^ "(" ^ print_prop p1 ^ ")" ^ "->" ^ "("
+       ^ print_prop p2 ^ "): \n \n");
+      let prop1 = eval_prop p1 info in
+      let prop2 = eval_prop p2 info in
+      match (prop1, prop2) with
+      | true, true ->
+          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
+          (not prop1) || prop2
+      | true, false ->
+          print_string [ blue ] (print_prop proposition ^ " is False \n \n");
+          (not prop1) || prop2
+      | false, true ->
+          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
+          (not prop1) || prop2
+      | false, false ->
+          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
+          (not prop1) || prop2)
