@@ -1,11 +1,6 @@
-type prop =
-  | Var of string
-  | Not of prop
-  | And of prop * prop
-  | Or of prop * prop
-  | Implies of prop * prop  (** The type representing logical propositions. *)
 
-type t = prop
+
+type t 
 (** Abstract data type for propositions. *)
 
 type data
@@ -13,6 +8,8 @@ type data
 
 exception InvalidProposition
 (** Raised when a proposition is invalid. *)
+
+exception InvalidData
 
 val print_prop : t -> string
 (** [print_prop prop] converts the proposition [prop] into a human-readable
@@ -33,3 +30,5 @@ val parse_prop : string -> t
 val eval_prop : t -> data -> bool
 (** [eval_prop prop data] evaluates the proposition [prop] using the truth
     values provided in [data]. Requires: No unquantified variables*)
+
+(*TODO: Add to_string method for DATA!*)

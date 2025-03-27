@@ -6,6 +6,7 @@ type prop =
   | And of prop * prop
   | Or of prop * prop
   | Implies of prop * prop
+  | Biconditional of prop * prop
 
 module StringHashtbl = Hashtbl.Make (struct
   type t = string
@@ -18,26 +19,30 @@ type t = prop
 type data = bool StringHashtbl.t
 
 exception InvalidProposition
+exception InvalidData
 
 let print_prop prop =
   let rec aux = function
     | Var x -> x
     | Not p -> "¬(" ^ aux p ^ ")"
-    | And (p1, p2) -> "(" ^ aux p1 ^ " ∧ " ^ aux p2 ^ ")"
-    | Or (p1, p2) -> "(" ^ aux p1 ^ " ∨ " ^ aux p2 ^ ")"
-    | Implies (p1, p2) -> "(" ^ aux p1 ^ " → " ^ aux p2 ^ ")"
+    | And (p1, p2) -> "(" ^ aux p1 ^ " ^ " ^ aux p2 ^ ")"
+    | Or (p1, p2) -> "(" ^ aux p1 ^ " v " ^ aux p2 ^ ")"
+    | Implies (p1, p2) -> "(" ^ aux p1 ^ " -> " ^ aux p2 ^ ")"
+    | Biconditional (p1, p2) -> "(" ^ aux p1 ^ ") <-> (" ^ aux p2 ^ ")"
   in
   aux prop
 
 let create_data (data_list : string list) : data =
   let table = StringHashtbl.create (List.length data_list) in
-  List.iter
-    (fun entry ->
-      match String.split_on_char ' ' entry with
-      | [ var; value ] ->
-          StringHashtbl.add table var (String.equal value "true")
-      | _ -> raise InvalidProposition)
-    data_list;
+  (try
+     List.iter
+       (fun entry ->
+         match String.split_on_char ' ' entry with
+         | [ var; value ] ->
+             StringHashtbl.add table var (String.equal value "true")
+         | _ -> raise InvalidProposition)
+       data_list
+   with _ -> raise InvalidData);
   table
 
 let add_var (var, var_value) data =
@@ -92,7 +97,7 @@ let parse_prop expr =
   let expression_lst = split_string expr in
   let rec parse_prop_helper expr_lst =
     try
-      let proposition = find_prop expr_lst [ "->"; "v"; "^"; "~" ] in
+      let proposition = find_prop expr_lst [ "<->"; "->"; "v"; "^"; "~" ] in
       let unprocessed_left, unprocessed_right =
         split_list_by_prop expr_lst proposition
       in
@@ -103,6 +108,7 @@ let parse_prop expr =
       | "v" -> Or (parse_prop_helper left, parse_prop_helper right)
       | "^" -> And (parse_prop_helper left, parse_prop_helper right)
       | "~" -> Not (parse_prop_helper (left @ right))
+      | "<->" -> Biconditional (parse_prop_helper left, parse_prop_helper right)
       | _ -> raise InvalidProposition
     with _ -> (
       match expr_lst with
@@ -118,6 +124,7 @@ let rec find_variables (prop : t) =
   | And (p1, p2) -> find_variables p1 @ find_variables p2
   | Or (p1, p2) -> find_variables p1 @ find_variables p2
   | Implies (p1, p2) -> find_variables p1 @ find_variables p2
+  | Biconditional (p1, p2) -> find_variables p1 @ find_variables p2
 
 let unquantified_variables data prop =
   let rec unquantified_variables_helper data lst =
@@ -207,3 +214,21 @@ let rec eval_prop (proposition : t) (info : data) =
       | false, false ->
           print_string [ blue ] (print_prop proposition ^ " is True \n \n");
           (not prop1) || prop2)
+  | Biconditional (p1, p2) -> (
+      print_string [ blue ]
+        ("Evaluating '<->' Statement: " ^ print_prop proposition ^ " \n \n");
+      let prop1 = eval_prop (Implies (p1, p2)) info in
+      let prop2 = eval_prop (Implies (p2, p1)) info in
+      match (prop1, prop2) with
+      | true, true ->
+          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
+          prop1 = prop2
+      | true, false ->
+          print_string [ blue ] (print_prop proposition ^ " is False \n \n");
+          prop1 = prop2
+      | false, true ->
+          print_string [ blue ] (print_prop proposition ^ " is False \n \n");
+          prop1 = prop2
+      | false, false ->
+          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
+          prop1 = prop2)
