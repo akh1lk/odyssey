@@ -1,5 +1,3 @@
-
-
 type t 
 (** Abstract data type for propositions. *)
 
@@ -10,6 +8,7 @@ exception InvalidProposition
 (** Raised when a proposition is invalid. *)
 
 exception InvalidData
+(**Raised when a data input is invalid.*)
 
 val print_prop : t -> string
 (** [print_prop prop] converts the proposition [prop] into a human-readable
@@ -22,6 +21,8 @@ val create_data : string list -> data
 val add_var: string*bool -> data -> data
 
 val unquantified_variables : data -> t -> string list
+(**[unquantified_variables data prop] returns a list of the variables in the proposition that do not have a quantification*)
+
 
 val parse_prop : string -> t
 (** [parse_prop expr] parses the string [expr] and returns a proposition of type
