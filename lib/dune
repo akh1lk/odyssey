@@ -1,3 +1,3 @@
 (library
-(libraries batteries str ANSITerminal)
+(libraries str ANSITerminal)
  (name odyssey))

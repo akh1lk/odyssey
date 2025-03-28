@@ -20,6 +20,7 @@ val create_data : string list -> data
     truth values assigned to variables. *)
 val add_var: string*bool -> data -> data
 
+
 val data_to_string: data -> string
 
 val unquantified_variables : data -> t -> string list
