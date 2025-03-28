@@ -46,8 +46,10 @@ let create_data (data_list : string list) : data =
   table
 
 let add_var (var, var_value) data =
+  try 
   StringHashtbl.add data var var_value;
   data
+with _ -> raise InvalidData
 
 let data_to_string data = 
   StringHashtbl.fold (fun x y acc -> "("^x^" : " ^ string_of_bool y ^") "^acc) data ""
@@ -110,7 +112,7 @@ let process_string_list lst =
   if List.length lst = 1 then
     match lst with
     | h :: [] -> tokenizer h
-    | _ -> failwith "Nah"
+    | _ -> raise InvalidProposition
   else lst
 
 let parse_prop expr =
@@ -276,6 +278,6 @@ let rec latex_of_prop_with_prec (p : prop) (prec : int) : string =
   | Biconditional (p1, p2) -> 
     let s1 = latex_of_prop_with_prec p1 0 in
     let s2 = latex_of_prop_with_prec p2 0 in
-    wrap (prec > 0) ((s1 ^ " \\rightarrow " ^ s2)^" \\land "^(s2 ^ " \\rightarrow " ^ s1))
+    wrap (prec > 0) (s1 ^ " \\leftrightarrow " ^ s2)
 
 let latex_of_prop p = "$" ^ latex_of_prop_with_prec p 0 ^ "$"

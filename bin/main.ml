@@ -114,7 +114,7 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
     "If you would like to evaluate your proposition, then type 'Evaluate Prop' \n";
   print_string [ green ]
     "If you like to export to LaTex via a copy-pastable string, then type \
-     'Latex Export'";
+     'Latex Export' \n";
   print_string [ green ] "If you would like to exit, type 'Exit' \n";
   (match (prop, data) with
   | Some p, Some d ->
@@ -167,7 +167,10 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
       match prop with
       | Some p ->
           print_string [ red ]
-            ("Copy Paste this into Latex: \n" ^ Odyssey.PropEval.latex_of_prop p)
+            ("Copy Paste this into Latex: \n"
+            ^ Odyssey.PropEval.latex_of_prop p
+            ^ "\n");
+          user_loop prop data
       | None ->
           print_string [ red ]
             "You do not have a proposition to export to Latex";
