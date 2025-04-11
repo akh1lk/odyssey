@@ -1,0 +1,31 @@
+---
+
+group:  
+  - name: Srikar Karra
+    netid: sk3377
+  - name: Gabriel Castillo
+    netid: gac232
+  - name: Paul Iacobucci
+    netid: pmi22
+  - name: Akhil Kagithapu
+    netid: ak2682
+
+
+pm:
+  name: Alex Gardocki
+  netid: rag325
+publish: false
+
+title: "Odyssey's Magic Theorem Prover"
+
+
+git-repo: "https://github.coecis.cornell.edu/ak2682/odyssey"
+
+demo-video-url: "https://www.youtube.com/watch?v=H6IWzBIrO7U"
+
+desc: >
+  Our project is a theorem prover where if you provide a proposition with variables, we can evaluate it for you! 
+  If the user quantifies all variables to true or false, we will be able to show you the steps in evaluating the proposition and the final boolean value 
+  If you do not quantify all your variables, you will be told which ones you need to quantify. 
+  Additionally, we give you a string so you can exp2ort your proposition to LaTex! 
+  Ultimately, all of this is encapsulated in a friendly user interface which can help you evaluate your propositions!

@@ -1,0 +1,145 @@
+commit 71c2ca34c6cb10e52a21c823e930b152a67dbb33
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 20:44:15 2025 -0400
+
+    Polishing Codebase
+
+commit fc6dcee33a1690e3380b947934e883a053531fb9
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 20:20:32 2025 -0400
+
+    Finishing Driver Program
+
+commit 7b3971c45723738d25c1b09844cfbe53aebff939
+Author: Gabriel Castillo <gac232@cornell.edu>
+Date:   Thu Mar 27 20:01:47 2025 -0400
+
+    Create PropEval tests.
+    - Test all the different operations
+    - Test complex propositions
+
+commit 931463ec2085e2dbb5e0a2e7e7004c5c74149ca1
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 19:57:58 2025 -0400
+
+    Integrated Akhil's Latex Code
+
+commit a8555f98f6c73e5faa5d75386687fc2da187c1b2
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 16:19:34 2025 -0400
+
+    Added Current Proposition and Data View in Driver
+
+commit 0f98325c464943e497d7554eb8f5e09b0e8cbbe3
+Author: Gabriel Castillo <gac232@cornell.edu>
+Date:   Thu Mar 27 15:19:02 2025 -0400
+
+    Finish implementing tokenizer (turn a proposition into a well split list).
+
+commit f32cb3d9dada42a559a6d39bbe5cceb4109f0f3d
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 14:59:52 2025 -0400
+
+    Fixing Parenthesis Parsing
+
+commit b28dd985d0b2fcdab1c7b983c507c47e777565de
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 03:11:00 2025 -0400
+
+    Wrote some Documentation
+
+commit ab4dd75a81992b9cdf185eee22b9ffd15be5d403
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 03:02:53 2025 -0400
+
+    Worked on Driver Program and Added Biconditional Propositional Logic
+    -Wrote comments about 'TODO'
+
+commit 8aed1c0475c7f2e3dbd199fae77017fdac746b42
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Thu Mar 27 01:28:52 2025 -0400
+
+    Implemented Evaluation Function and Added Additional Functions to Signature
+
+commit 95f79b66edacc607e3379f6eb8de89889f3f28a6
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Wed Mar 26 00:31:20 2025 -0400
+
+    Building Logic for Prop Eval
+
+commit 687a6fe5c358d9ec9e48a3fc9d23b249322e52d8
+Author: Paul Iacobucci <pmi22@cornell.edu>
+Date:   Tue Mar 25 13:29:52 2025 -0400
+
+    created driver, created entire propEval module, added ANSITerminal for interactivity, and made user-friendly UI for easy use
+
+commit be87036fbb3e79ff27b01083934d19be04c58225
+Author: Akhil Kagithapu <ak2682@cornell.edu>
+Date:   Sat Mar 22 22:10:55 2025 -0400
+
+    did eval_prop function, modified to input data
+
+commit ddb719736d29ae97d5dd5a896e0216823396dcb3
+Author: Gabriel Castillo <gac232@cornell.edu>
+Date:   Sat Mar 22 21:58:19 2025 -0400
+
+    Update mli and ml
+    - data not needed for parsing.
+
+commit 5acd8539b97e914ff0693500ce70d180f1c3af66
+Author: Gabriel Castillo <gac232@cornell.edu>
+Date:   Sat Mar 22 21:54:43 2025 -0400
+
+    Updated Atom to Var, making eval_prop turn string -> bool
+
+commit e4706429de550a03bf4576cf2ae16fc45d82dca8
+Author: Akhil Kagithapu <ak2682@cornell.edu>
+Date:   Sat Mar 22 21:25:49 2025 -0400
+
+    Changed data to a key=string val=bool hashtable
+
+commit 42ed5d939547d7658350181ba7f068334ae5a604
+Author: Akhil Kagithapu <ak2682@cornell.edu>
+Date:   Fri Mar 21 15:29:25 2025 -0400
+
+    Corrected starter propEval.ml types, changed data to string list
+
+commit f1935e9ebbefcab14404d9822b6b9c73f54220be
+Author: Gabriel Castillo <gac232@cornell.edu>
+Date:   Fri Mar 21 15:22:47 2025 -0400
+
+    Created propEval:
+    - Defined required and helper functions in mli and ml files.
+    - Documented all functions in the respective places.
+    - (Akhil) implemented type prop.
+    - Added TODOs
+
+commit ab4ef5a22f1f68f6dc92e923f85176c4236fca1a
+Author: Gabriel Castillo <gac232@cornell.edu>
+Date:   Mon Mar 10 23:17:27 2025 -0400
+
+    Gabriel Castillo's Commit
+
+commit 3248b6ff1f3a1cfcb3d0ff18451377f4ee171741
+Author: Paul Iacobucci <pmi22@cornell.edu>
+Date:   Mon Mar 10 22:36:08 2025 -0400
+
+    Paul Iacobucci's Commit
+
+commit 8b8c1718d66ee37cde344d6ea7ec3bca6c396222
+Author: Akhil Kagithapu <ak2682@cornell.edu>
+Date:   Mon Mar 10 22:33:01 2025 -0400
+
+    Akhil Kagithapu's Commit
+
+commit dd75eb993278d2b009b1d8dab6b17ab4b78926be
+Author: sk3377 <sk3377@cornell.edu>
+Date:   Mon Mar 10 22:31:02 2025 -0400
+
+    Srikar Karra Commit
+
+commit 352e98d536b2860620d606f4101f8ceb014508bd
+Author: Akhil Kagithapu <ak2682@cornell.edu>
+Date:   Fri Mar 7 21:12:46 2025 -0500
+
+    Initial commit: The start of greatness

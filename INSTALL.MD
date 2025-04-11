@@ -2,7 +2,6 @@ Run the Following Commands:
 
 #To Install Necessary Packages
 opam install ANSITerminal
-opam install str
 
 #To Build the Program
 dune build
