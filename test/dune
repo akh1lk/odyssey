@@ -1,4 +1,4 @@
 (test
-(libraries ounit2 odyssey)
+ (libraries ounit2 odyssey qcheck qcheck-ounit)
  (deps (glob_files_rec ../data/*))
  (name test_odyssey))
