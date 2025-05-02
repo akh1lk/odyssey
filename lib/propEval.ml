@@ -410,10 +410,7 @@ let rec simplify_prop prop data =
           | Some true -> Not (Var x)
           | Some false -> Not (Var x)
           | None -> Not simplified_p)
-      | Not inner -> (
-          match simplify_prop inner data with
-          | Var x when try_get_value x <> None -> Var x
-          | simplified_inner -> Not (Not simplified_inner))
+      | Not inner -> inner
       | _ -> Not simplified_p)
   | And (p1, p2) -> (
       let simplified_p1 = simplify_prop p1 data in
