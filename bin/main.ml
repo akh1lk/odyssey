@@ -91,19 +91,40 @@ let eval_prop prop data =
   let unquantified_variables =
     Odyssey.PropEval.unquantified_variables data prop
   in
-  let string_unquantified_variables =
-    List.fold_left (fun x y -> x ^ " " ^ y) "" unquantified_variables
-  in
+
+  (* Simplify the proposition with the currently quantified variables *)
+  let simplified_prop = Odyssey.PropEval.simplify_prop prop data in
+
   if List.length unquantified_variables = 0 then
     Odyssey.PropEval.eval_prop prop data
-  else (
+  else
+    let all_vars = Odyssey.PropEval.find_variables prop in
+
+    (* Different message depending on whether any variables are quantified *)
+    if List.length unquantified_variables = List.length all_vars then
+      print_string [ white ] "No variables have been quantified yet.\n"
+    else
+      print_string [ white ]
+        "You have not quantified all variables needed to fully evaluate the \
+         proposition.\n";
+
+    let string_unquantified_variables =
+      String.concat " " unquantified_variables
+    in
+
     print_string [ white ]
-      "You have not quantified all of your variables to evaluate the \
-       proposition \n";
+      ("Missing variables: " ^ string_unquantified_variables ^ "\n");
+
+    print_string [ yellow ]
+      ("Here is the simplified version: "
+      ^ Odyssey.PropEval.print_prop simplified_prop
+      ^ "\n");
+
     print_string [ white ]
-      ("Please Quantify these variables in the command menu: \n"
-     ^ string_unquantified_variables ^ "\n");
-    false)
+      "To fully evaluate this proposition, please quantify the remaining \
+       variables in the command menu.\n";
+
+    false
 
 let rec user_loop (prop : Odyssey.PropEval.t option)
     (data : Odyssey.PropEval.data option) =
@@ -178,10 +199,31 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
       | Some p, Some d ->
           let _ = eval_prop p d in
           user_loop prop data
-      | _ ->
+      | Some p, None ->
+          (* Create an empty data table and run simplification *)
+          let empty_data = Odyssey.PropEval.create_data [] in
+          let unquantified =
+            Odyssey.PropEval.unquantified_variables empty_data p
+          in
+          let simplified = Odyssey.PropEval.simplify_prop p empty_data in
+
+          print_string [ white ] "No variables have been quantified yet.\n";
+          print_string [ white ]
+            ("Missing variables: " ^ String.concat " " unquantified ^ "\n");
+          print_string [ yellow ]
+            ("Here is the simplified version: "
+            ^ Odyssey.PropEval.print_prop simplified
+            ^ "\n");
+          print_string [ white ]
+            "Please quantify variables using 'Variable Input' to evaluate this \
+             proposition.\n";
+
+          user_loop prop data
+      | None, _ ->
           print_string [ red ]
-            "You do not have a proposition and data. Once you have both, you \
-             can evaluate your proposition \n")
+            "You don't have a proposition to evaluate. Please input one using \
+             'Prop Input'.\n";
+          user_loop prop data)
   | "Latex Export" -> (
       match prop with
       | Some p ->

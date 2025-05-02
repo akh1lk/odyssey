@@ -44,6 +44,9 @@ val latex_of_prop : t -> string
     proposition. Note that output has two backslashes, so it must be printed or
     parsed when written to a file. *)
 
+val find_variables : t -> string list
+(** [find_variables prop] returns a list of variables present in the proposition [prop]. *)
+
 val find_assignment : t -> (string * bool) list option 
 (** [find_assignment prop] returns [Some string * bool list] of variables and
 truth values in order to make a proposition satisfiable. If there is no
