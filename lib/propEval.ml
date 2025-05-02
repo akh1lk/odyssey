@@ -100,7 +100,42 @@ let tokenizer s =
   |> t_aux []
   |> List.filter (fun s -> s <> " ")
 
+let rec countparen lst count1 count2 =
+  match lst with
+  | [] -> raise InvalidProposition
+  | h :: [] -> (count1, count2)
+  | h :: t ->
+      if h = "(" then countparen t (count1 + 1) count2
+      else if h = ")" then countparen t count1 (count2 + 1)
+      else countparen t count1 count2
+
+let extract_lst lst =
+  let rec extract_helper lst =
+    match lst with
+    | h :: [] -> []
+    | h :: t -> h :: extract_helper t
+    | _ -> raise InvalidProposition
+  in
+  match lst with
+  | h :: t -> extract_helper t
+  | _ -> raise InvalidProposition
+
+let clean_intial_parenthesis (lst : string list) =
+  match lst with
+  | [] -> raise InvalidProposition
+  | h :: t ->
+      if h = "(" then
+        let parencount1, parencount2 = countparen t 0 0 in
+        if parencount1 = parencount2 then extract_lst lst else lst
+      else lst
+
+let preprocess_string str =
+  let lst = Str.split (Str.regexp "") str in
+  let final_lst = clean_intial_parenthesis lst in
+  List.fold_left ( ^ ) "" final_lst
+
 let split_string str =
+  let str = preprocess_string str in
   let expr_lst = tokenizer str in
   let rec combine_with_parenthesis parenbool combinedelement lst parencount =
     match lst with
