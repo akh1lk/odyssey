@@ -281,3 +281,34 @@ let rec latex_of_prop_with_prec (p : prop) (prec : int) : string =
     wrap (prec > 0) (s1 ^ " \\leftrightarrow " ^ s2)
 
 let latex_of_prop p = "$" ^ latex_of_prop_with_prec p 0 ^ "$"
+
+(* Implementation of CNF Below *)
+
+(** Step 1: change P->Q to ~P v Q *)
+let rec eliminate_implies = function
+| Var x -> Var x
+| Not p -> Not (eliminate_implies p)
+| And (p1, p2) -> And (eliminate_implies p1, eliminate_implies p2)
+| Or (p1, p2) -> Or (eliminate_implies p1, eliminate_implies p2)
+| Implies (p1, p2) -> Or (Not (eliminate_implies p1), eliminate_implies p2)
+| Biconditional (p1, p2) -> 
+  let a = eliminate_implies p1 in
+  let b = eliminate_implies p2 in
+  And (Or (Not a, b), Or (Not b, a))
+
+(** Step 2: change eliminated implies to nnf. Requires eliminate_implies is 
+called before *)
+let rec to_nnf = function
+  | Var x -> Var x
+  | Not (Not p) -> to_nnf p
+  | Not (And (p1, p2)) ->
+      Or (to_nnf (Not p1), to_nnf (Not p2))
+  | Not (Or (p1, p2)) ->
+      And (to_nnf (Not p1), to_nnf (Not p2))
+  | Not p -> Not (to_nnf p)
+  | And (p1, p2) -> And (to_nnf p1, to_nnf p2)
+  | Or (p1, p2) -> Or (to_nnf p1, to_nnf p2)
+  (* assume no impls or biconds are here *)
+  | p -> p  
+
+(** Step 3: NNF to CNF  *)

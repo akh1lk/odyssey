@@ -1,3 +1,5 @@
 (library
 (libraries str ANSITerminal)
- (name odyssey))
+ (name odyssey)
+ (instrumentation
+  (backend bisect_ppx)))

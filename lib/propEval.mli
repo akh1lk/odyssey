@@ -19,9 +19,10 @@ val create_data : string list -> data
     [["var1 true/false"; "var2 true"; ...]] and returns a [data] hash table with
     truth values assigned to variables. *)
 val add_var: string*bool -> data -> data
-
+(* TODO: Add doc *)
 
 val data_to_string: data -> string
+(* TODO: Add doc *)
 
 val unquantified_variables : data -> t -> string list
 (**[unquantified_variables data prop] returns a list of the variables in the proposition that do not have a quantification*)

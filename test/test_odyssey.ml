@@ -2,7 +2,7 @@ open OUnit2
 open QCheck
 open Odyssey
 
-(* Helper function to create tests for PropEval.eval_prop *)
+(* helper: eval_prop tests *)
 let make_test name prop_str data_lst expected =
   name >:: fun _ ->
   let prop = PropEval.parse_prop prop_str in
@@ -10,7 +10,23 @@ let make_test name prop_str data_lst expected =
   let result = PropEval.eval_prop prop data in
   assert_equal expected result ~printer:string_of_bool
 
-(* QCheck generators *)
+(* helper: latex tests *)
+let make_latex_test name prop_str expected =
+  name >:: fun _ ->
+  assert_equal expected
+    (PropEval.latex_of_prop (PropEval.parse_prop prop_str))
+    ~printer:(fun s -> s)
+
+(* helper: unquant_vars tests *)
+let make_unquant_vars_test name prop_str data_lst expected =
+  name >:: fun _ ->
+  assert_equal expected
+    (PropEval.unquantified_variables
+       (PropEval.create_data data_lst)
+       (PropEval.parse_prop prop_str))
+    ~printer:(fun lst -> "[" ^ String.concat "; " lst ^ "]")
+
+(* qcheck: prop gen *)
 let var_gen =
   Gen.oneof
     [
@@ -51,14 +67,14 @@ let rec prop_gen ~size =
           (prop_gen ~size:(size / 2));
       ]
 
-(* Generate random data with values for variables *)
+(* gen random data for vars *)
 let data_gen vars =
   Gen.map
     (fun values ->
       List.map2 (fun var value -> var ^ " " ^ string_of_bool value) vars values)
     (Gen.list_repeat (List.length vars) Gen.bool)
 
-(* Find all variables in a proposition string *)
+(* simple var finder *)
 let find_variables prop_str =
   let chars = List.init (String.length prop_str) (String.get prop_str) in
   let is_var_char c = ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') in
@@ -71,7 +87,7 @@ let find_variables prop_str =
     chars;
   !vars
 
-(* Property-based test: Double negation should not change the truth value *)
+(* prop: double negation holds *)
 let prop_double_negation =
   Test.make ~name:"Double negation should not change the truth value" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -102,7 +118,7 @@ let prop_double_negation =
           result = double_neg_result
       with _ -> true)
 
-(* Property-based test: De Morgan's laws should hold *)
+(* prop: de morgan holds *)
 let prop_de_morgan =
   Test.make ~name:"De Morgan's laws should hold" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -141,7 +157,7 @@ let prop_de_morgan =
           neg_and_result = or_neg_result
       with _ -> true)
 
-(* Property-based test: Implication can be rewritten as OR *)
+(* prop: implication as or *)
 let prop_implication_as_or =
   Test.make ~name:"p -> q is equivalent to ~p v q" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -177,7 +193,7 @@ let prop_implication_as_or =
           implies_result = or_result
       with _ -> true)
 
-(* Property-based test: Check if parsing is consistent *)
+(* prop: parsing consistency *)
 let prop_parsing_consistent =
   Test.make ~name:"Parsing should be consistent" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -189,7 +205,7 @@ let prop_parsing_consistent =
         true
       with _ -> true)
 
-(* Property-based test: Distribution of AND over OR *)
+(* prop: distribution AND over OR *)
 let prop_distribution_and_over_or =
   Test.make ~name:"Distribution of AND over OR" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -226,7 +242,7 @@ let prop_distribution_and_over_or =
           left_result = right_result
       with _ -> true)
 
-(* Property-based test: Distribution of OR over AND *)
+(* prop: distribution OR over AND *)
 let prop_distribution_or_over_and =
   Test.make ~name:"Distribution of OR over AND" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -263,7 +279,7 @@ let prop_distribution_or_over_and =
           left_result = right_result
       with _ -> true)
 
-(* Property-based test: Contraposition *)
+(* prop: contraposition *)
 let prop_contraposition =
   Test.make ~name:"Contraposition: (p -> q) <-> (~q -> ~p)" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -297,7 +313,7 @@ let prop_contraposition =
           normal_result = contra_result
       with _ -> true)
 
-(* Property-based test: Triple Negation *)
+(* prop: triple negation *)
 let prop_triple_negation =
   Test.make ~name:"Triple negation: ~~~p <-> ~p" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -328,7 +344,7 @@ let prop_triple_negation =
           triple_result = single_result
       with _ -> true)
 
-(* Property-based test: Commutativity of AND *)
+(* prop: commutative AND *)
 let prop_commutative_and =
   Test.make ~name:"AND is commutative: p ^ q <-> q ^ p" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -361,7 +377,7 @@ let prop_commutative_and =
           p_and_q_result = q_and_p_result
       with _ -> true)
 
-(* Property-based test: Commutativity of OR *)
+(* prop: commutative OR *)
 let prop_commutative_or =
   Test.make ~name:"OR is commutative: p v q <-> q v p" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -394,7 +410,7 @@ let prop_commutative_or =
           p_or_q_result = q_or_p_result
       with _ -> true)
 
-(* Property-based test: Associativity of AND *)
+(* prop: associative AND *)
 let prop_associative_and =
   Test.make ~name:"AND is associative: p ^ (q ^ r) <-> (p ^ q) ^ r" ~count:100
     (list_of_size Gen.(0 -- 3) int)
@@ -428,7 +444,7 @@ let prop_associative_and =
           p_and_qr_result = pq_and_r_result
       with _ -> true)
 
-(* Traditional OUnit tests *)
+(* ounit tests *)
 let ounit_suite =
   "PropEval OUnit Tests"
   >::: [
@@ -559,6 +575,17 @@ let ounit_suite =
            "(x -> y) <-> (~x v y)" [ "x true"; "y true" ] true;
          make_test "Equivalence 2: (p -> q) <-> (~p v q)"
            "(x -> y) <-> (~x v y)" [ "x false"; "y false" ] true;
+         (* Tests for latex_of_prop *)
+         make_latex_test "Test latex simple var" "x" "$x$";
+         make_latex_test "Test latex NOT" "~x" "$\\lnot x$";
+         make_latex_test "Test latex AND" "x ^ y" "$x \\land y$";
+         make_latex_test "Test latex OR" "x v y" "$x \\lor y$";
+         make_latex_test "Test latex IMPLIES" "x -> y" "$x \\rightarrow y$";
+         make_latex_test "Test latex complex nested" "(x ^ ~y) v (z -> w)"
+           "$x \\land \\lnot y \\lor (z \\rightarrow w)$";
+         (* unquantified_variables tests *)
+         make_unquant_vars_test "Test unquantified_variables" "x ^ y ^ z"
+           [ "x true"; "z false" ] [ "y" ];
        ]
 
 (* Combine OUnit and QCheck tests *)
