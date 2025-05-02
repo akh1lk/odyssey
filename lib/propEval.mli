@@ -40,3 +40,25 @@ val latex_of_prop : t -> string
 (** [latex_of_prop p] returns a string of LaTeX-interpretable code of the
     proposition. Note that output has two backslashes, so it must be printed or
     parsed when written to a file. *)
+
+val find_assignment : t -> (string * bool) list option 
+(** [find_assignment prop] returns [Some string * bool list] of variables and
+truth values in order to make a proposition satisfiable. If there is no
+combinations of T/F variable assigments, it returns [None] *)
+
+val is_satisfiable : t -> bool 
+(** [is_satisfiable prop] returns a boolean that says whether a proposition
+is satisfiable or not, specifically relating to the boolean satisfiablity
+problem. *)
+
+val is_tautology : t -> bool 
+(** [is_tautology prop] returns a boolean that says whether a proposition
+is a tautology (i.e. always true). *)
+
+val equivalent: t-> t-> bool
+(** [equivalent prop] returns a boolean that says whether 2 propositions 
+are equivalent *)
+
+val cnf_of_prop : t -> t
+(** [cnf_of_prop prop] returns a proposition logically equivalent to [prop] 
+    in Conjunctive Normal Form (CNF). *)

@@ -30,7 +30,15 @@ let rec prop_input () =
          If no parentheses are specified then the conventional precedence of \
          operations is followed in mathematics. The order in which the \
          operators are displayed in the instructions is from highest priority \
-         to lowest priority";
+         to lowest priority.\n\
+         Special Commands in the Command Menu:\n\
+         'SAT' - check if the proposition is satisfiable (has at least one \
+         assignment that makes it true)\n\
+         'Tautology' - check if the proposition is always true under all \
+         assignments\n\
+         'Equivalent' - check if your current proposition is logically \
+         equivalent to another proposition you input\n\
+         'CNF' - export the proposition to Conjunctive Normal Form (CNF)";
       prop_input ()
   | _ -> (
       try
@@ -115,6 +123,17 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
   print_string [ green ]
     "If you like to export to LaTex via a copy-pastable string, then type \
      'Latex Export' \n";
+  print_string [ green ]
+    "If you would like to export to CNF form, then type 'CNF' \n";
+  print_string [ green ]
+    "If you would like to check satisfiability, then type 'SAT' \n";
+  print_string [ green ]
+    "If you would like to check for tautology, then type 'Tautology' \n";
+  print_string [ green ]
+    "If you would like to check equivalence, then type 'Equivalent' \n";
+  print_string [ green ]
+    "If you would like to find a valid proposition assignment, then type \
+     'Valid Prop' \n";
   print_string [ green ] "If you would like to exit, type 'Exit' \n";
   (match (prop, data) with
   | Some p, Some d ->
@@ -174,6 +193,66 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
       | None ->
           print_string [ red ]
             "You do not have a proposition to export to Latex";
+          user_loop prop data)
+  | "CNF" -> (
+      match prop with
+      | Some p ->
+          let cnf = Odyssey.PropEval.cnf_of_prop p in
+          print_string [ red ]
+            ("CNF form: " ^ Odyssey.PropEval.print_prop cnf ^ "\n");
+          user_loop prop data
+      | None ->
+          print_string [ red ] "no proposition to convert to CNF\n";
+          user_loop prop data)
+  | "SAT" -> (
+      match prop with
+      | Some p ->
+          let sat = Odyssey.PropEval.is_satisfiable p in
+
+          print_string [ red ]
+            (if sat then "satisfiable\n" else "unsatisfiable\n");
+          user_loop prop data
+      | None ->
+          print_string [ red ] "no proposition to test\n";
+          user_loop prop data)
+  | "Valid Prop" -> (
+      match prop with
+      | Some p -> (
+          match Odyssey.PropEval.find_assignment p with
+          | Some assign ->
+              List.iter
+                (fun (v, b) ->
+                  print_string [ red ] (v ^ "=" ^ string_of_bool b ^ ", "))
+                assign;
+              print_endline "";
+              user_loop prop data
+          | None ->
+              print_string [ red ] "no satisfying assignment\n";
+              user_loop prop data)
+      | None ->
+          print_string [ red ] "no proposition to test\n";
+          user_loop prop data)
+  | "Tautology" -> (
+      match prop with
+      | Some p ->
+          let taut = Odyssey.PropEval.is_tautology p in
+          print_string [ red ]
+            (if taut then "tautology\n" else "not a tautology\n");
+          user_loop prop data
+      | None ->
+          print_string [ red ] "no proposition to test\n";
+          user_loop prop data)
+  | "Equivalent" -> (
+      match prop with
+      | Some p ->
+          print_string [ magenta ] "enter second proposition for equivalence:\n";
+          let q = prop_input () in
+          let equal = Odyssey.PropEval.equivalent p q in
+          print_string [ red ]
+            (if equal then "equivalent\n" else "not equivalent\n");
+          user_loop prop data
+      | None ->
+          print_string [ red ] "no proposition to test\n";
           user_loop prop data)
   | "Exit" -> ()
   | _ ->

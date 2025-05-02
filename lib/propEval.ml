@@ -46,13 +46,15 @@ let create_data (data_list : string list) : data =
   table
 
 let add_var (var, var_value) data =
-  try 
-  StringHashtbl.add data var var_value;
-  data
-with _ -> raise InvalidData
+  try
+    StringHashtbl.add data var var_value;
+    data
+  with _ -> raise InvalidData
 
-let data_to_string data = 
-  StringHashtbl.fold (fun x y acc -> "("^x^" : " ^ string_of_bool y ^") "^acc) data ""
+let data_to_string data =
+  StringHashtbl.fold
+    (fun x y acc -> "(" ^ x ^ " : " ^ string_of_bool y ^ ") " ^ acc)
+    data ""
 
 let split_list_by_prop (expr_lst : string list) (find_symbol : string) =
   let rec split_expr_helper lst find_symbol left_list =
@@ -74,9 +76,13 @@ let rec find_prop lst prop_lst =
   | [] -> raise InvalidProposition
   | h :: t -> if find_prop_aux lst h then h else find_prop lst t
 
-let rec preprocess_lst lst = match lst with 
-|[] -> []
-|h::t -> if (String.length h) =2 then (Str.string_before h 1)::(Str.string_after h 1)::(preprocess_lst t) else h::(preprocess_lst t)
+let rec preprocess_lst lst =
+  match lst with
+  | [] -> []
+  | h :: t ->
+      if String.length h = 2 then
+        Str.string_before h 1 :: Str.string_after h 1 :: preprocess_lst t
+      else h :: preprocess_lst t
 
 let rec t_aux acc = function
   | [] -> acc
@@ -101,13 +107,26 @@ let split_string str =
     | [] -> []
     | h :: t ->
         if parenbool then
-          if h = ")" then (if parencount=0 then combinedelement :: combine_with_parenthesis false "" t 0 else combine_with_parenthesis true (combinedelement^ " "^ h) t (parencount-1))
-          else (if h = "(" then combine_with_parenthesis true (combinedelement^" "^h) t (parencount+1) else combine_with_parenthesis true (if combinedelement="" then h else (combinedelement^" "^h)) t parencount)
-        else if h = "(" then combine_with_parenthesis true "" t 0 
+          if h = ")" then
+            if parencount = 0 then
+              combinedelement :: combine_with_parenthesis false "" t 0
+            else
+              combine_with_parenthesis true
+                (combinedelement ^ " " ^ h)
+                t (parencount - 1)
+          else if h = "(" then
+            combine_with_parenthesis true
+              (combinedelement ^ " " ^ h)
+              t (parencount + 1)
+          else
+            combine_with_parenthesis true
+              (if combinedelement = "" then h else combinedelement ^ " " ^ h)
+              t parencount
+        else if h = "(" then combine_with_parenthesis true "" t 0
         else h :: combine_with_parenthesis false "" t 0
   in
   combine_with_parenthesis false "" expr_lst 0
-(**)
+
 let process_string_list lst =
   if List.length lst = 1 then
     match lst with
@@ -139,14 +158,18 @@ let parse_prop expr =
   in
   parse_prop_helper expression_lst
 
-let rec find_variables (prop : t) =
+let rec find_variables_helper (prop : t) =
   match prop with
   | Var x -> [ x ]
-  | Not p -> find_variables p
-  | And (p1, p2) -> find_variables p1 @ find_variables p2
-  | Or (p1, p2) -> find_variables p1 @ find_variables p2
-  | Implies (p1, p2) -> find_variables p1 @ find_variables p2
-  | Biconditional (p1, p2) -> find_variables p1 @ find_variables p2
+  | Not p -> find_variables_helper p
+  | And (p1, p2) -> find_variables_helper p1 @ find_variables_helper p2
+  | Or (p1, p2) -> find_variables_helper p1 @ find_variables_helper p2
+  | Implies (p1, p2) -> find_variables_helper p1 @ find_variables_helper p2
+  | Biconditional (p1, p2) ->
+      find_variables_helper p1 @ find_variables_helper p2
+
+let find_variables (prop : t) =
+  List.sort_uniq String.compare (find_variables_helper prop)
 
 let unquantified_variables data prop =
   let rec unquantified_variables_helper data lst =
@@ -275,40 +298,94 @@ let rec latex_of_prop_with_prec (p : prop) (prec : int) : string =
       let s1 = latex_of_prop_with_prec p1 0 in
       let s2 = latex_of_prop_with_prec p2 0 in
       wrap (prec > 0) (s1 ^ " \\rightarrow " ^ s2)
-  | Biconditional (p1, p2) -> 
-    let s1 = latex_of_prop_with_prec p1 0 in
-    let s2 = latex_of_prop_with_prec p2 0 in
-    wrap (prec > 0) (s1 ^ " \\leftrightarrow " ^ s2)
+  | Biconditional (p1, p2) ->
+      let s1 = latex_of_prop_with_prec p1 0 in
+      let s2 = latex_of_prop_with_prec p2 0 in
+      wrap (prec > 0) (s1 ^ " \\leftrightarrow " ^ s2)
 
 let latex_of_prop p = "$" ^ latex_of_prop_with_prec p 0 ^ "$"
 
-(* Implementation of CNF Below *)
+(* Implementation of SAT Solver Below *)
 
-(** Step 1: change P->Q to ~P v Q *)
+(* CNF Form Converter (for real SAT export) *)
+
+(** Step 1.1: change P->Q to ~P v Q *)
 let rec eliminate_implies = function
-| Var x -> Var x
-| Not p -> Not (eliminate_implies p)
-| And (p1, p2) -> And (eliminate_implies p1, eliminate_implies p2)
-| Or (p1, p2) -> Or (eliminate_implies p1, eliminate_implies p2)
-| Implies (p1, p2) -> Or (Not (eliminate_implies p1), eliminate_implies p2)
-| Biconditional (p1, p2) -> 
-  let a = eliminate_implies p1 in
-  let b = eliminate_implies p2 in
-  And (Or (Not a, b), Or (Not b, a))
+  | Var x -> Var x
+  | Not p -> Not (eliminate_implies p)
+  | And (p1, p2) -> And (eliminate_implies p1, eliminate_implies p2)
+  | Or (p1, p2) -> Or (eliminate_implies p1, eliminate_implies p2)
+  | Implies (p1, p2) -> Or (Not (eliminate_implies p1), eliminate_implies p2)
+  | Biconditional (p1, p2) ->
+      let a = eliminate_implies p1 in
+      let b = eliminate_implies p2 in
+      And (Or (Not a, b), Or (Not b, a))
 
-(** Step 2: change eliminated implies to nnf. Requires eliminate_implies is 
-called before *)
+(** Step 1.2: change eliminated implies to nnf. Requires eliminate_implies is
+    called before. Outputs a prop w/ only NOT, AND and OR*)
 let rec to_nnf = function
   | Var x -> Var x
   | Not (Not p) -> to_nnf p
-  | Not (And (p1, p2)) ->
-      Or (to_nnf (Not p1), to_nnf (Not p2))
-  | Not (Or (p1, p2)) ->
-      And (to_nnf (Not p1), to_nnf (Not p2))
+  | Not (And (p1, p2)) -> Or (to_nnf (Not p1), to_nnf (Not p2))
+  | Not (Or (p1, p2)) -> And (to_nnf (Not p1), to_nnf (Not p2))
   | Not p -> Not (to_nnf p)
   | And (p1, p2) -> And (to_nnf p1, to_nnf p2)
   | Or (p1, p2) -> Or (to_nnf p1, to_nnf p2)
   (* assume no impls or biconds are here *)
-  | p -> p  
+  | p -> p
 
-(** Step 3: NNF to CNF  *)
+(** Step 1.3: NNF to CNF by distributing OR over AND *)
+let rec distribute_or = function
+  (* the main distributing work *)
+  | Or (p, And (q, r)) ->
+      And (distribute_or (Or (p, q)), distribute_or (Or (p, r)))
+  | Or (And (q, r), p) ->
+      And (distribute_or (Or (q, p)), distribute_or (Or (r, p)))
+  (* keep rest the same *)
+  | And (p1, p2) -> And (distribute_or p1, distribute_or p2)
+  | Or (p1, p2) -> Or (distribute_or p1, distribute_or p2)
+  | p -> p
+
+(** Step 1.4: Takes in a proposition and converts it to CNF form *)
+let cnf_of_prop p = p |> eliminate_implies |> to_nnf |> distribute_or
+
+(* Step 2: Brute Force SAT (Satisfiability) Solver *)
+
+(** Step 2.1: truth tables for all variable assignments *)
+let rec truth_tables = function
+  | [] -> [ [] ]
+  | v :: vs ->
+      let rest = truth_tables vs in
+      List.concat
+        [
+          List.map (fun r -> (v, true) :: r) rest;
+          List.map (fun r -> (v, false) :: r) rest;
+        ]
+
+(** Step 2.2: Converts a truthtable to data. *)
+let data_of_truthtables truthtables =
+  let tbl = StringHashtbl.create (List.length truthtables) in
+  List.iter (fun (v, b) -> StringHashtbl.add tbl v b) truthtables;
+  tbl
+
+(** Step 2.3: Find a valid assignment for a prop *)
+let find_assignment prop =
+  (* generate all T/F combos of the vars in prop *)
+  let vars = find_variables prop in
+  let combos = truth_tables vars in
+  (* find a valid assignment *)
+  List.find_opt
+    (fun assignment ->
+      let tfdata = data_of_truthtables assignment in
+
+      eval_prop prop tfdata)
+    combos
+
+(** Step 2.4: SAT Solver, returns whether a prop is satisfiable *)
+let is_satisfiable prop =
+  match find_assignment prop with
+  | None -> false
+  | Some x -> true
+
+let is_tautology prop = not (is_satisfiable (Not prop))
+let equivalent a b = is_satisfiable (Biconditional (a, b))
