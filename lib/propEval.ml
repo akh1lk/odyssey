@@ -389,3 +389,92 @@ let is_satisfiable prop =
 
 let is_tautology prop = not (is_satisfiable (Not prop))
 let equivalent a b = is_satisfiable (Biconditional (a, b))
+
+(** [simplify_prop prop data] simplifies a proposition by substituting
+    quantified variables. *)
+let rec simplify_prop prop data =
+  let try_get_value var =
+    try Some (StringHashtbl.find data var) with Not_found -> None
+  in
+  match prop with
+  | Var x -> (
+      match try_get_value x with
+      | Some true -> Var x (* Keep the variable even when true *)
+      | Some false -> Var x (* Keep the variable even when false *)
+      | None -> Var x (* Unquantified stays as-is *))
+  | Not p -> (
+      let simplified_p = simplify_prop p data in
+      match simplified_p with
+      | Var x -> (
+          match try_get_value x with
+          | Some true -> Not (Var x) (* Keep as Not(Var x) *)
+          | Some false -> Not (Var x) (* Keep as Not(Var x) *)
+          | None -> Not simplified_p)
+      | Not inner -> (
+          match simplify_prop inner data with
+          | Var x when try_get_value x <> None ->
+              Var x (* Double negation elimination if quantified *)
+          | simplified_inner ->
+              Not (Not simplified_inner)
+              (* Keep double negation for unquantified *))
+      | _ -> Not simplified_p)
+  | And (p1, p2) -> (
+      let simplified_p1 = simplify_prop p1 data in
+      let simplified_p2 = simplify_prop p2 data in
+      (* Apply AND simplification rules *)
+      match (simplified_p1, simplified_p2) with
+      | Var x, Var y when x = y -> Var x (* p ∧ p = p *)
+      | Var x, _ when try_get_value x = Some false ->
+          Var x (* false ∧ p = false, but keep variable *)
+      | _, Var y when try_get_value y = Some false ->
+          Var y (* p ∧ false = false, but keep variable *)
+      | Var x, p when try_get_value x = Some true -> p (* true ∧ p = p *)
+      | p, Var y when try_get_value y = Some true -> p (* p ∧ true = p *)
+      | p1, p2 -> And (p1, p2))
+  | Or (p1, p2) -> (
+      let simplified_p1 = simplify_prop p1 data in
+      let simplified_p2 = simplify_prop p2 data in
+      (* Apply OR simplification rules *)
+      match (simplified_p1, simplified_p2) with
+      | Var x, Var y when x = y -> Var x (* p ∨ p = p *)
+      | Var x, _ when try_get_value x = Some true ->
+          Var x (* true ∨ p = true, but keep variable *)
+      | _, Var y when try_get_value y = Some true ->
+          Var y (* p ∨ true = true, but keep variable *)
+      | Var x, p when try_get_value x = Some false -> p (* false ∨ p = p *)
+      | p, Var y when try_get_value y = Some false -> p (* p ∨ false = p *)
+      | p1, p2 -> Or (p1, p2))
+  | Implies (p1, p2) -> (
+      let simplified_p1 = simplify_prop p1 data in
+      let simplified_p2 = simplify_prop p2 data in
+      (* Apply IMPLIES simplification rules *)
+      match (simplified_p1, simplified_p2) with
+      | Var x, _ when try_get_value x = Some false ->
+          Var "true" (* false → p = true *)
+      | _, Var y when try_get_value y = Some true ->
+          Var "true" (* p → true = true *)
+      | Var x, p when try_get_value x = Some true -> p (* true → p = p *)
+      | p, Var y when try_get_value y = Some false -> Not p (* p → false = ¬p *)
+      | p1, p2 when p1 = p2 -> Var "true" (* p → p = true *)
+      | p1, p2 -> Implies (p1, p2))
+  | Biconditional (p1, p2) -> (
+      let simplified_p1 = simplify_prop p1 data in
+      let simplified_p2 = simplify_prop p2 data in
+      (* Apply BICONDITIONAL simplification rules *)
+      match (simplified_p1, simplified_p2) with
+      | p1, p2 when p1 = p2 -> Var "true" (* p ↔ p = true *)
+      | Var x, Var y
+        when try_get_value x = Some true && try_get_value y = Some true ->
+          Var "true" (* true ↔ true = true *)
+      | Var x, Var y
+        when try_get_value x = Some false && try_get_value y = Some false ->
+          Var "true" (* false ↔ false = true *)
+      | Var x, Var y
+        when (try_get_value x = Some true && try_get_value y = Some false)
+             || (try_get_value x = Some false && try_get_value y = Some true) ->
+          Var "false" (* true ↔ false = false *)
+      | Var x, p when try_get_value x = Some true -> p (* true ↔ p = p *)
+      | p, Var y when try_get_value y = Some true -> p (* p ↔ true = p *)
+      | Var x, p when try_get_value x = Some false -> Not p (* false ↔ p = ¬p *)
+      | p, Var y when try_get_value y = Some false -> Not p (* p ↔ false = ¬p *)
+      | p1, p2 -> Biconditional (p1, p2))
