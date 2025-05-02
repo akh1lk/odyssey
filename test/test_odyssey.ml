@@ -26,6 +26,16 @@ let make_unquant_vars_test name prop_str data_lst expected =
        (PropEval.parse_prop prop_str))
     ~printer:(fun lst -> "[" ^ String.concat "; " lst ^ "]")
 
+(* Helper for simplification tests *)
+let make_simplify_test name prop_str data_lst expected_prop_str =
+  name >:: fun _ ->
+  let prop = PropEval.parse_prop prop_str in
+  let data = PropEval.create_data data_lst in
+  let simplified = PropEval.simplify_prop prop data in
+  let expected = PropEval.parse_prop expected_prop_str in
+  assert_equal (PropEval.print_prop expected) (PropEval.print_prop simplified)
+    ~printer:(fun s -> s)
+
 (* qcheck: prop gen *)
 let var_gen =
   Gen.oneof
@@ -588,11 +598,126 @@ let ounit_suite =
            [ "x true"; "z false" ] [ "y" ];
        ]
 
+(* Add simplification tests to the suite *)
+let simplification_tests =
+  "Proposition Simplification Tests"
+  >::: [
+         (* Basic variable tests *)
+         make_simplify_test "Simplify variable (quantified)" "x" [ "x true" ]
+           "x";
+         make_simplify_test "Simplify variable (unquantified)" "x" [] "x";
+         (* NOT operator tests *)
+         make_simplify_test "Simplify NOT with quantified variable" "~x"
+           [ "x true" ] "~x";
+         make_simplify_test "Simplify NOT with unquantified variable" "~x" []
+           "~x";
+         make_simplify_test "Simplify double NOT" "~(~x)" [ "x true" ] "~(~x)";
+         (* AND operator tests *)
+         make_simplify_test "Simplify AND with both quantified (true)" "x ^ y"
+           [ "x true"; "y true" ] "x ^ y";
+         make_simplify_test "Simplify AND with one false" "x ^ y"
+           [ "x false"; "y true" ] "x ^ y";
+         make_simplify_test "Simplify AND with one unquantified" "x ^ y"
+           [ "x true" ] "y";
+         (* x is true, so x ^ y = y *)
+         make_simplify_test "Simplify AND with same variable" "x ^ x"
+           [ "x true" ] "x";
+         (* OR operator tests *)
+         make_simplify_test "Simplify OR with both quantified (true)" "x v y"
+           [ "x true"; "y true" ] "x v y";
+         make_simplify_test "Simplify OR with one true" "x v y"
+           [ "x true"; "y false" ] "x v y";
+         make_simplify_test "Simplify OR with one unquantified" "x v y"
+           [ "x false" ] "y";
+         (* x is false, so x v y = y *)
+         make_simplify_test "Simplify OR with same variable" "x v x"
+           [ "x false" ] "x";
+         (* IMPLIES operator tests *)
+         make_simplify_test "Simplify IMPLIES with antecedent false" "x -> y"
+           [ "x false" ] "true";
+         make_simplify_test "Simplify IMPLIES with consequent true" "x -> y"
+           [ "y true" ] "true";
+         make_simplify_test "Simplify IMPLIES with antecedent true" "x -> y"
+           [ "x true" ] "y";
+         make_simplify_test "Simplify IMPLIES with consequent false" "x -> y"
+           [ "y false" ] "~x";
+         make_simplify_test "Simplify IMPLIES with same variable" "x -> x" []
+           "true";
+         (* BICONDITIONAL operator tests *)
+         make_simplify_test "Simplify BICONDITIONAL with same variable"
+           "x <-> x" [] "true";
+         make_simplify_test "Simplify BICONDITIONAL with both true" "x <-> y"
+           [ "x true"; "y true" ] "true";
+         make_simplify_test "Simplify BICONDITIONAL with both false" "x <-> y"
+           [ "x false"; "y false" ] "true";
+         make_simplify_test "Simplify BICONDITIONAL with opposite values"
+           "x <-> y" [ "x true"; "y false" ] "false";
+         make_simplify_test "Simplify BICONDITIONAL with one true" "x <-> y"
+           [ "x true" ] "y";
+         make_simplify_test "Simplify BICONDITIONAL with one false" "x <-> y"
+           [ "x false" ] "~y";
+         (* Complex expression tests *)
+         make_simplify_test "Simplify complex expr 1" "(x ^ y) -> z"
+           [ "x true"; "y true" ] "z";
+         make_simplify_test "Simplify complex expr 2" "(x ^ y) -> z"
+           [ "x false" ] "true";
+         make_simplify_test "Simplify complex expr 3" "(x v y) ^ z"
+           [ "z false" ] "z";
+         make_simplify_test "Simplify complex expr 4" "(x v y) ^ z" [ "z true" ]
+           "x v y";
+         make_simplify_test "Simplify complex expr 5" "~(x ^ ~y)"
+           [ "x true"; "y true" ] "~(x ^ ~y)";
+         make_simplify_test "Simplify complex expr 6" "~(x ^ ~y)" [ "x true" ]
+           "~(x ^ ~y)";
+         make_simplify_test "Simplify complex expr 7" "(x v y) ^ x" [ "y true" ]
+           "x";
+         make_simplify_test "Simplify complex expr 8" "(x v y) ^ x" []
+           "(x v y) ^ x";
+         (* No simplification possible *)
+
+         (* Examples from the prompt *)
+         make_simplify_test "Example from prompt" "(x v y) ^ x" [ "y true" ] "x";
+       ]
+
+(* Add simplified simplification tests to the suite *)
+let simplification_tests =
+  "Proposition Simplification Tests"
+  >::: [
+         (* Basic simplification patterns *)
+         make_simplify_test "Variable simplification" "x" [ "x true" ] "x";
+         make_simplify_test "Double negation elimination" "~(~x)" [ "x true" ]
+           "x";
+         make_simplify_test "NOT with quantified variable" "~x" [ "x true" ]
+           "~x";
+         (* AND operator simplifications *)
+         make_simplify_test "AND with true antecedent" "x ^ y" [ "x true" ] "y";
+         make_simplify_test "AND with false operand" "x ^ y" [ "x false" ] "x";
+         make_simplify_test "AND with redundant term" "x ^ x" [ "x true" ] "x";
+         (* OR operator simplifications *)
+         make_simplify_test "OR with false antecedent" "x v y" [ "x false" ] "y";
+         make_simplify_test "OR with true operand" "x v y" [ "x true" ] "x";
+         make_simplify_test "OR with redundant term" "x v x" [ "x true" ] "x";
+         (* IMPLIES operator simplifications *)
+         make_simplify_test "IMPLIES with true antecedent" "x -> y" [ "x true" ]
+           "y";
+         make_simplify_test "IMPLIES with false consequent" "x -> y"
+           [ "y false" ] "~x";
+         (* Complex expression simplifications *)
+         make_simplify_test "Compound AND expressions" "(x v y) ^ x"
+           [ "y true" ] "x";
+         make_simplify_test "Example from prompt" "(x v y) ^ x" [ "y true" ] "x";
+         make_simplify_test "Complex nested expressions" "~(x ^ ~y)"
+           [ "x true"; "y true" ] "y";
+         make_simplify_test "No simplification needed" "(x v y) ^ z" []
+           "(x v y) ^ z";
+       ]
+
 (* Combine OUnit and QCheck tests *)
 let suite =
   "All Tests"
   >::: [
          ounit_suite;
+         simplification_tests;
          "QCheck Tests"
          >::: [
                 QCheck_runner.to_ounit2_test prop_double_negation;

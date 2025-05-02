@@ -19,14 +19,17 @@ val create_data : string list -> data
     [["var1 true/false"; "var2 true"; ...]] and returns a [data] hash table with
     truth values assigned to variables. *)
 val add_var: string*bool -> data -> data
-(* TODO: Add doc *)
+(** [add_var (var, var_value) data] adds a variable and its truth value to the data table. *)
 
 val data_to_string: data -> string
-(* TODO: Add doc *)
+(** [data_to_string data] converts the data table to a string representation. *)
 
 val unquantified_variables : data -> t -> string list
 (**[unquantified_variables data prop] returns a list of the variables in the proposition that do not have a quantification*)
 
+val simplify_prop : t -> data -> t
+(** [simplify_prop prop data] simplifies the proposition [prop] using the truth values in [data], 
+    keeping unquantified variables as they are. *)
 
 val parse_prop : string -> t
 (** [parse_prop expr] parses the string [expr] and returns a proposition of type
@@ -40,6 +43,9 @@ val latex_of_prop : t -> string
 (** [latex_of_prop p] returns a string of LaTeX-interpretable code of the
     proposition. Note that output has two backslashes, so it must be printed or
     parsed when written to a file. *)
+
+val find_variables : t -> string list
+(** [find_variables prop] returns a list of variables present in the proposition [prop]. *)
 
 val find_assignment : t -> (string * bool) list option 
 (** [find_assignment prop] returns [Some string * bool list] of variables and
