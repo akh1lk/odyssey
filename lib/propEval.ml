@@ -100,14 +100,16 @@ let tokenizer s =
   |> t_aux []
   |> List.filter (fun s -> s <> " ")
 
-let rec countparen lst count1 count2 =
+let rec countparen lst count =
   match lst with
   | [] -> raise InvalidProposition
-  | h :: [] -> (count1, count2)
+  | h :: [] -> count
   | h :: t ->
-      if h = "(" then countparen t (count1 + 1) count2
-      else if h = ")" then countparen t count1 (count2 + 1)
-      else countparen t count1 count2
+      if count >= 0 then
+        if h = "(" then countparen t (count + 1)
+        else if h = ")" then countparen t (count - 1)
+        else countparen t count
+      else -100
 
 let extract_lst lst =
   let rec extract_helper lst =
@@ -125,8 +127,8 @@ let clean_intial_parenthesis (lst : string list) =
   | [] -> raise InvalidProposition
   | h :: t ->
       if h = "(" then
-        let parencount1, parencount2 = countparen t 0 0 in
-        if parencount1 = parencount2 then extract_lst lst else lst
+        let parenpairs = countparen t 0 in
+        if parenpairs = 0 then extract_lst lst else lst
       else lst
 
 let preprocess_string str =
