@@ -39,6 +39,8 @@ val eval_prop : t -> data -> bool
 (** [eval_prop prop data] evaluates the proposition [prop] using the truth
     values provided in [data]. Requires: No unquantified variables*)
 
+val eval_prop_string: t -> data -> (string*string)list
+
 val latex_of_prop : t -> string
 (** [latex_of_prop p] returns a string of LaTeX-interpretable code of the
     proposition. Note that output has two backslashes, so it must be printed or

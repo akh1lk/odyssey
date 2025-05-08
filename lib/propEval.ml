@@ -222,98 +222,130 @@ let unquantified_variables data prop =
 
 let rec eval_prop (proposition : t) (info : data) =
   match proposition with
-  | Var x ->
-      let var_value = StringHashtbl.find info x in
-      print_string [ yellow ]
-        ("Evaluating Variable: " ^ x ^ " to " ^ string_of_bool var_value
-       ^ " \n \n");
-      StringHashtbl.find info x
-  | Not p -> (
-      print_string [ red ]
-        ("Evaluating '~' Statement " ^ "~(" ^ print_prop p ^ "): \n \n");
+  | Var x -> StringHashtbl.find info x
+  | Not p ->
       let final_value = eval_prop p info in
-      match final_value with
-      | true ->
-          print_string [ red ] ("~" ^ print_prop p ^ " is False \n \n");
-          not final_value
-      | false ->
-          print_string [ red ] ("~" ^ print_prop p ^ " is True \n \n");
-          not final_value)
-  | And (p1, p2) -> (
-      print_string [ green ]
-        ("Evaluating '^' Statement (" ^ print_prop p1 ^ ") ^ (" ^ print_prop p2
-       ^ "): \n \n");
+      not final_value
+  | And (p1, p2) ->
       let prop1 = eval_prop p1 info in
       let prop2 = eval_prop p2 info in
-      match (prop1, prop2) with
-      | true, true ->
-          print_string [ green ] (print_prop proposition ^ " is True \n \n");
-          prop1 && prop2
-      | true, false ->
-          print_string [ green ] (print_prop proposition ^ " is False \n \n");
-          prop1 && prop2
-      | false, true ->
-          print_string [ green ] (print_prop proposition ^ " is False \n \n");
-          prop1 && prop2
-      | false, false ->
-          print_string [ green ] (print_prop proposition ^ " is False \n \n");
-          prop1 && prop2)
-  | Or (p1, p2) -> (
-      print_string [ magenta ]
-        ("Evaluating 'v' Statement (" ^ print_prop p1 ^ ")" ^ " v " ^ "("
-       ^ print_prop p2 ^ "): \n \n");
+      prop1 && prop2
+  | Or (p1, p2) ->
       let prop1 = eval_prop p1 info in
       let prop2 = eval_prop p2 info in
-      match (prop1, prop2) with
-      | true, true ->
-          print_string [ magenta ] (print_prop proposition ^ " is True \n \n");
-          prop1 || prop2
-      | true, false ->
-          print_string [ magenta ] (print_prop proposition ^ " is True \n \n");
-          prop1 || prop2
-      | false, true ->
-          print_string [ magenta ] (print_prop proposition ^ " is True \n \n");
-          prop1 || prop2
-      | false, false ->
-          print_string [ magenta ] (print_prop proposition ^ " is False \n \n");
-          prop1 || prop2)
-  | Implies (p1, p2) -> (
-      print_string [ blue ]
-        ("Evaluating '->' Statement: " ^ "(" ^ print_prop p1 ^ ")" ^ "->" ^ "("
-       ^ print_prop p2 ^ "): \n \n");
+      prop1 || prop2
+  | Implies (p1, p2) ->
       let prop1 = eval_prop p1 info in
       let prop2 = eval_prop p2 info in
-      match (prop1, prop2) with
-      | true, true ->
-          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
-          (not prop1) || prop2
-      | true, false ->
-          print_string [ blue ] (print_prop proposition ^ " is False \n \n");
-          (not prop1) || prop2
-      | false, true ->
-          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
-          (not prop1) || prop2
-      | false, false ->
-          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
-          (not prop1) || prop2)
-  | Biconditional (p1, p2) -> (
-      print_string [ blue ]
-        ("Evaluating '<->' Statement: " ^ print_prop proposition ^ " \n \n");
+      (not prop1) || prop2
+  | Biconditional (p1, p2) ->
       let prop1 = eval_prop (Implies (p1, p2)) info in
       let prop2 = eval_prop (Implies (p2, p1)) info in
-      match (prop1, prop2) with
-      | true, true ->
-          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
-          prop1 = prop2
-      | true, false ->
-          print_string [ blue ] (print_prop proposition ^ " is False \n \n");
-          prop1 = prop2
-      | false, true ->
-          print_string [ blue ] (print_prop proposition ^ " is False \n \n");
-          prop1 = prop2
-      | false, false ->
-          print_string [ blue ] (print_prop proposition ^ " is True \n \n");
-          prop1 = prop2)
+      prop1 = prop2
+
+let rec eval_prop_string proposition info =
+  match proposition with
+  | Var x ->
+      let var_value = StringHashtbl.find info x in
+      [
+        ( "yellow",
+          "Evaluating Variable: " ^ x ^ " to " ^ string_of_bool var_value
+          ^ " \n \n" );
+      ]
+  | Not p ->
+      let first_str =
+        [ ("red", "Evaluating '~' Statement (" ^ print_prop p ^ "): \n\n") ]
+      in
+      let intermediate_str = eval_prop_string p info in
+      let pval = eval_prop p info in
+      let final_value = not pval in
+      let final_str =
+        if final_value then [ ("red", "~" ^ print_prop p ^ " is True \n\n") ]
+        else [ ("red", "~" ^ print_prop p ^ " is False \n\n") ]
+      in
+      first_str @ intermediate_str @ final_str
+  | And (p1, p2) ->
+      let first_str =
+        [
+          ( "green",
+            "Evaluating '^' Statement (" ^ print_prop p1 ^ ") ^ ("
+            ^ print_prop p2 ^ "): \n\n" );
+        ]
+      in
+      let intermediate_str1 = eval_prop_string p1 info in
+      let intermediate_str2 = eval_prop_string p2 info in
+      let intermediate_str = intermediate_str1 @ intermediate_str2 in
+      let p1val = eval_prop p1 info in
+      let p2val = eval_prop p2 info in
+      let final_value = p1val && p2val in
+      let final_str =
+        if final_value then
+          [ ("green", print_prop (And (p1, p2)) ^ " is True \n\n") ]
+        else [ ("green", print_prop (And (p1, p2)) ^ " is False \n\n") ]
+      in
+      first_str @ intermediate_str @ final_str
+  | Or (p1, p2) ->
+      let first_str =
+        [
+          ( "magenta",
+            "Evaluating 'v' Statement (" ^ print_prop p1 ^ ") v ("
+            ^ print_prop p2 ^ "): \n\n" );
+        ]
+      in
+      let intermediate_str1 = eval_prop_string p1 info in
+      let intermediate_str2 = eval_prop_string p2 info in
+      let intermediate_str = intermediate_str1 @ intermediate_str2 in
+      let p1val = eval_prop p1 info in
+      let p2val = eval_prop p2 info in
+      let final_value = p1val || p2val in
+      let final_str =
+        if final_value then
+          [ ("magenta", print_prop (Or (p1, p2)) ^ " is True \n\n") ]
+        else [ ("magenta", print_prop (Or (p1, p2)) ^ " is False \n\n") ]
+      in
+      first_str @ intermediate_str @ final_str
+  | Implies (p1, p2) ->
+      let first_str =
+        [
+          ( "blue",
+            "Evaluating '->' Statement: (" ^ print_prop p1 ^ ") -> ("
+            ^ print_prop p2 ^ "): \n\n" );
+        ]
+      in
+      let intermediate_str1 = eval_prop_string p1 info in
+      let intermediate_str2 = eval_prop_string p2 info in
+      let intermediate_str = intermediate_str1 @ intermediate_str2 in
+      let p1val = eval_prop p1 info in
+      let p2val = eval_prop p2 info in
+      let final_value = (not p1val) || p2val in
+      let final_str =
+        if final_value then
+          [ ("blue", print_prop (Implies (p1, p2)) ^ " is True \n\n") ]
+        else [ ("blue", print_prop (Implies (p1, p2)) ^ " is False \n\n") ]
+      in
+      first_str @ intermediate_str @ final_str
+  | Biconditional (p1, p2) ->
+      let first_str =
+        [
+          ( "blue",
+            "Evaluating '<->' Statement: "
+            ^ print_prop (Biconditional (p1, p2))
+            ^ " \n\n" );
+        ]
+      in
+      let intermediate_str1 = eval_prop_string (Implies (p1, p2)) info in
+      let intermediate_str2 = eval_prop_string (Implies (p2, p1)) info in
+      let intermediate_str = intermediate_str1 @ intermediate_str2 in
+      let p1val = eval_prop (Implies (p1, p2)) info in
+      let p2val = eval_prop (Implies (p2, p1)) info in
+      let final_value = p1val = p2val in
+      let final_str =
+        if final_value then
+          [ ("blue", print_prop (Biconditional (p1, p2)) ^ " is True \n\n") ]
+        else
+          [ ("blue", print_prop (Biconditional (p1, p2)) ^ " is False \n\n") ]
+      in
+      first_str @ intermediate_str @ final_str
 
 (* Hierarchy of prop (high->low): Not=3, And=2, Or=2, Implies=1 *)
 let rec latex_of_prop_with_prec (p : prop) (prec : int) : string =

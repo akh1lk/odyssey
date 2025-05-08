@@ -87,31 +87,35 @@ let rec variable_add data =
         "Invalid Input. Please follow the instructions exactly \n";
       variable_add data
 
+let style_fromstr str =
+  match str with
+  | "yellow" -> yellow
+  | "red" -> red
+  | "green" -> green
+  | "magneta" -> magenta
+  | "blue" -> blue
+  | "cyan" -> cyan
+  | "black" -> black
+  | "white" -> white
+  | _ -> default
+
+let rec print_evalprop_string lst =
+  match lst with
+  | [] -> ()
+  | (color, str) :: t ->
+      print_string [ style_fromstr color ] str;
+      print_evalprop_string t
+
 let eval_prop prop data =
   let unquantified_variables =
     Odyssey.PropEval.unquantified_variables data prop
   in
-
-  (* Simplify the proposition with the currently quantified variables *)
-  let simplified_prop = Odyssey.PropEval.simplify_prop prop data in
-
+  let string_unquantified_variables =
+    List.fold_left (fun x y -> x ^ " " ^ y) "" unquantified_variables
+  in
   if List.length unquantified_variables = 0 then
     Odyssey.PropEval.eval_prop prop data
-  else
-    let all_vars = Odyssey.PropEval.find_variables prop in
-
-    (* Different message depending on whether any variables are quantified *)
-    if List.length unquantified_variables = List.length all_vars then
-      print_string [ white ] "No variables have been quantified yet.\n"
-    else
-      print_string [ white ]
-        "You have not quantified all variables needed to fully evaluate the \
-         proposition.\n";
-
-    let string_unquantified_variables =
-      String.concat " " unquantified_variables
-    in
-
+  else (
     print_string [ white ]
       ("Missing variables: " ^ string_unquantified_variables ^ "\n");
 
