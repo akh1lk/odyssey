@@ -113,22 +113,27 @@ let eval_prop prop data =
   let string_unquantified_variables =
     List.fold_left (fun x y -> x ^ " " ^ y) "" unquantified_variables
   in
-  if List.length unquantified_variables = 0 then
-    Odyssey.PropEval.eval_prop prop data
+  if List.length unquantified_variables = 0 then (
+    let final_val = Odyssey.PropEval.eval_prop prop data in
+    print_string [ red; Blink; Bold ]
+      ("The final value of the proposition is " ^ string_of_bool final_val
+     ^ ". \n\nHere is the evaluation proces:\n\n");
+    print_evalprop_string (Odyssey.PropEval.eval_prop_string prop data);
+    true)
   else (
     print_string [ white ]
       ("Missing variables: " ^ string_unquantified_variables ^ "\n");
 
     print_string [ yellow ]
       ("Here is the simplified version: "
-      ^ Odyssey.PropEval.print_prop simplified_prop
+      ^ Odyssey.PropEval.print_prop (Odyssey.PropEval.simplify_prop prop data)
       ^ "\n");
 
     print_string [ white ]
       "To fully evaluate this proposition, please quantify the remaining \
        variables in the command menu.\n";
 
-    false
+    false)
 
 let rec user_loop (prop : Odyssey.PropEval.t option)
     (data : Odyssey.PropEval.data option) =
@@ -152,6 +157,9 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
     "If you would like to export to CNF form, then type 'CNF' \n";
   print_string [ green ]
     "If you would like to check satisfiability, then type 'SAT' \n";
+  print_string [ green ]
+    "If you want to simplify your proposition based on the variables you have \
+     and save that proposition, then type 'Simplify Prop' \n";
   print_string [ green ]
     "If you would like to check for tautology, then type 'Tautology' \n";
   print_string [ green ]
@@ -288,6 +296,11 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
       | None ->
           print_string [ red ] "no proposition to test\n";
           user_loop prop data)
+  | "Simplify Prop" -> (
+      match (prop, data) with
+      | Some p, Some d ->
+          user_loop (Some (Odyssey.PropEval.simplify_prop p d)) data
+      | _ -> user_loop prop data)
   | "Equivalent" -> (
       match prop with
       | Some p ->
