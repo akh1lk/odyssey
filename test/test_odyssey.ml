@@ -10,12 +10,15 @@ let make_test name prop_str data_lst expected =
   let result = PropEval.eval_prop prop data in
   assert_equal expected result ~printer:string_of_bool
 
-(* helper: latex tests *)
+(* helper: latex tests with improved printing *)
 let make_latex_test name prop_str expected =
   name >:: fun _ ->
-  assert_equal expected
-    (PropEval.latex_of_prop (PropEval.parse_prop prop_str))
+  let actual = PropEval.latex_of_prop (PropEval.parse_prop prop_str) in
+  assert_equal expected actual
     ~printer:(fun s -> s)
+    ~cmp:String.equal
+    ~pp_diff:(fun fmt (expected, actual) ->
+      Format.fprintf fmt "Expected: %s\nActual: %s" expected actual)
 
 (* helper: unquant_vars tests *)
 let make_unquant_vars_test name prop_str data_lst expected =
@@ -26,15 +29,96 @@ let make_unquant_vars_test name prop_str data_lst expected =
        (PropEval.parse_prop prop_str))
     ~printer:(fun lst -> "[" ^ String.concat "; " lst ^ "]")
 
-(* Helper for simplification tests *)
+(* Helper for simplification tests with better error reporting *)
 let make_simplify_test name prop_str data_lst expected_prop_str =
   name >:: fun _ ->
   let prop = PropEval.parse_prop prop_str in
   let data = PropEval.create_data data_lst in
   let simplified = PropEval.simplify_prop prop data in
   let expected = PropEval.parse_prop expected_prop_str in
-  assert_equal (PropEval.print_prop expected) (PropEval.print_prop simplified)
-    ~printer:(fun s -> s)
+  let expected_str = PropEval.print_prop expected in
+  let simplified_str = PropEval.print_prop simplified in
+  if expected_str <> simplified_str then
+    assert_failure
+      (name ^ ":\nOriginal proposition: '" ^ prop_str ^ "'\nWith data: ["
+      ^ String.concat "; " data_lst
+      ^ "]\nExpected: '" ^ expected_str ^ "'\nActual: '" ^ simplified_str ^ "'"
+      )
+  else assert_bool name true
+
+(* Helper: check if a string contains a substring *)
+let string_contains s sub =
+  try
+    let len_s = String.length s in
+    let len_sub = String.length sub in
+    let rec aux i =
+      if i > len_s - len_sub then false
+      else if String.sub s i len_sub = sub then true
+      else aux (i + 1)
+    in
+    aux 0
+  with _ -> false
+
+(* Helper function for testing DIMACS format output *)
+let make_dimacs_test name prop_str expected =
+  name >:: fun _ ->
+  let prop = PropEval.parse_prop prop_str in
+  let dimacs = PropEval.dimacs_of_prop prop in
+  assert_bool
+    (name ^ ": Expected DIMACS format to contain '" ^ expected ^ "'")
+    (string_contains dimacs expected)
+
+(* Helper function for testing CNF conversion with better error reporting *)
+let make_cnf_test name prop_str expected_pattern =
+  name >:: fun _ ->
+  let prop = PropEval.parse_prop prop_str in
+  let cnf = PropEval.cnf_of_prop prop in
+  let cnf_str = PropEval.print_prop cnf in
+  if not (string_contains cnf_str expected_pattern) then
+    assert_failure
+      (name ^ ":\nOriginal proposition: '" ^ prop_str
+     ^ "'\nExpected CNF to contain: '" ^ expected_pattern ^ "'\nActual CNF: '"
+     ^ cnf_str ^ "'")
+  else assert_bool name true
+
+(* Helper for satisfiability tests *)
+let make_sat_test name prop_str expected =
+  name >:: fun _ ->
+  let prop = PropEval.parse_prop prop_str in
+  let result = PropEval.is_satisfiable prop in
+  assert_equal expected result ~printer:string_of_bool
+
+(* Helper function for testing eval_prop_string *)
+let make_eval_prop_string_test name prop_str data_lst expected_color
+    expected_text =
+  name >:: fun _ ->
+  let prop = PropEval.parse_prop prop_str in
+  let data = PropEval.create_data data_lst in
+  let result = PropEval.eval_prop_string prop data in
+  (* Check if any pair in the result list contains both the expected color and
+     text *)
+  let contains_expected =
+    List.exists
+      (fun (color, text) ->
+        color = expected_color && string_contains text expected_text)
+      result
+  in
+  assert_bool
+    (name ^ ": Expected result to contain color '" ^ expected_color
+   ^ "' and text containing '" ^ expected_text ^ "'")
+    contains_expected
+
+(* Helper for latex evaluation tests with improved printing *)
+let make_latex_eval_test name prop_str data_lst expected_pattern =
+  name >:: fun _ ->
+  let prop = PropEval.parse_prop prop_str in
+  let data = PropEval.create_data data_lst in
+  let latex = PropEval.latex_of_eval_prop prop data in
+  if not (string_contains latex expected_pattern) then
+    assert_failure
+      (name ^ ":\nExpected pattern: '" ^ expected_pattern
+     ^ "'\nActual output: '" ^ latex ^ "'")
+  else assert_bool name true
 
 (* qcheck: prop gen *)
 let var_gen =
@@ -454,6 +538,16 @@ let prop_associative_and =
           p_and_qr_result = pq_and_r_result
       with _ -> true)
 
+(* Helper to check assignment results *)
+let assert_assignment_result name result expected_to_find =
+  match (result, expected_to_find) with
+  | Some _, true -> assert_bool "Expected to find an assignment" true
+  | None, false -> assert_bool "Expected to find no assignment" true
+  | Some _, false ->
+      assert_bool "Expected to find no assignment but found one" false
+  | None, true ->
+      assert_bool "Expected to find an assignment but found none" false
+
 (* ounit tests *)
 let ounit_suite =
   "PropEval OUnit Tests"
@@ -712,12 +806,109 @@ let simplification_tests =
            "(x v y) ^ z";
        ]
 
+(* Tests for CNF conversion *)
+let cnf_tests =
+  "CNF Conversion Tests"
+  >::: [
+         (* Basic conversions *)
+         make_cnf_test "Convert simple proposition to CNF" "x" "x";
+         make_cnf_test "Convert NOT to CNF" "~x" "~(x)";
+         make_cnf_test "Convert AND to CNF" "x ^ y" "x ^ y";
+         make_cnf_test "Convert OR to CNF" "x v y" "x v y";
+         (* Implication elimination *)
+         make_cnf_test "Convert implication to CNF" "x -> y" "~(x) v y";
+         (* Complex conversions *)
+         make_cnf_test "Convert complex expression to CNF" "(x ^ y) -> z"
+           "((~(x) v ~(y)) v z)";
+         make_cnf_test "Convert nested implication to CNF" "x -> (y -> z)"
+           "(~(x) v (~(y) v z))";
+         (* Distribution *)
+         make_cnf_test "Distribute OR over AND in CNF" "x v (y ^ z)"
+           "((x v y) ^ (x v z))";
+         make_cnf_test "Distribute nested OR over AND in CNF"
+           "w v (x v (y ^ z))" "(w v ((x v y) ^ (x v z)))";
+       ]
+
+(* Tests for DIMACS format generation*)
+let dimacs_tests =
+  "DIMACS Format Tests"
+  >::: [
+         (* Basic DIMACS generation *)
+         make_dimacs_test "Convert simple variable to DIMACS" "x" "p cnf 1 1";
+         make_dimacs_test "Convert NOT to DIMACS" "~x" "-1 0";
+         make_dimacs_test "Convert AND to DIMACS" "x ^ y" "p cnf 2 2";
+         (* Complex DIMACS *)
+         make_dimacs_test "Convert complex expression to DIMACS" "(x v y) ^ ~z"
+           "p cnf 3 2";
+       ]
+
+(* Tests for satisfiability *)
+let satisfiability_tests =
+  "Satisfiability Tests"
+  >::: [
+         (* Basic satisfiability *)
+         make_sat_test "SAT: Simple variable" "x" true;
+         make_sat_test "SAT: NOT variable" "~x" true;
+         make_sat_test "SAT: AND satisfiable" "x ^ y" true;
+         make_sat_test "SAT: OR satisfiable" "x v y" true;
+         (* Contradiction and tautology *)
+         make_sat_test "SAT: Contradiction" "x ^ ~x" false;
+         make_sat_test "SAT: Tautology" "x v ~x" true;
+         (* Complex cases *)
+         make_sat_test "SAT: Complex satisfiable" "(x v y) ^ (x v ~y)" true;
+         make_sat_test "SAT: Complex unsatisfiable" "(x v y) ^ (~x) ^ (~y)"
+           false;
+       ]
+
+(* Tests for eval_prop_string *)
+let eval_string_tests =
+  "Eval Prop String Tests"
+  >::: [
+         (* Basic string evaluation *)
+         make_eval_prop_string_test "Simple eval_prop_string variable" "x"
+           [ "x true" ] "yellow" "Evaluating Variable";
+         make_eval_prop_string_test "NOT eval_prop_string" "~x" [ "x true" ]
+           "red" "Evaluating '~'";
+         make_eval_prop_string_test "AND eval_prop_string" "x ^ y"
+           [ "x true"; "y true" ] "green" "Evaluating '^'";
+         make_eval_prop_string_test "OR eval_prop_string" "x v y"
+           [ "x false"; "y true" ] "magenta" "Evaluating 'v'";
+         make_eval_prop_string_test "IMPLIES eval_prop_string" "x -> y"
+           [ "x true"; "y false" ] "blue" "Evaluating '->'";
+         make_eval_prop_string_test "BICONDITIONAL eval_prop_string" "x <-> y"
+           [ "x true"; "y true" ] "blue" "Evaluating '<->'";
+       ]
+
+(* Tests for latex_of_eval_prop *)
+let latex_eval_tests =
+  "LaTeX Evaluation Tests"
+  >::: [
+         (* Basic LaTeX evaluation *)
+         make_latex_eval_test "Simple variable latex_of_eval_prop" "x"
+           [ "x true" ] "Evaluating variable $x$";
+         make_latex_eval_test "NOT latex_of_eval_prop" "~x" [ "x false" ]
+           "Evaluating $\\lnot(x)$";
+         make_latex_eval_test "AND latex_of_eval_prop" "x ^ y"
+           [ "x true"; "y false" ] "Evaluating $x \\land y$";
+         make_latex_eval_test "OR latex_of_eval_prop" "x v y"
+           [ "x false"; "y true" ] "Evaluating $x \\lor y$";
+         make_latex_eval_test "IMPLIES latex_of_eval_prop" "x -> y"
+           [ "x true"; "y false" ] "Evaluating $x \\rightarrow y$";
+         make_latex_eval_test "BICONDITIONAL latex_of_eval_prop" "x <-> y"
+           [ "x true"; "y true" ] "Evaluating $x \\leftrightarrow y$";
+       ]
+
 (* Combine OUnit and QCheck tests *)
 let suite =
   "All Tests"
   >::: [
          ounit_suite;
          simplification_tests;
+         dimacs_tests;
+         satisfiability_tests;
+         eval_string_tests;
+         cnf_tests;
+         latex_eval_tests;
          "QCheck Tests"
          >::: [
                 QCheck_runner.to_ounit2_test prop_double_negation;
