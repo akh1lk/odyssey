@@ -135,6 +135,20 @@ let eval_prop prop data =
 
     false)
 
+let latex_of_eval_prop prop data =
+  let unquantified_variables =
+    Odyssey.PropEval.unquantified_variables data prop
+  in
+  let string_unquantified_variables =
+    List.fold_left (fun x y -> x ^ " " ^ y) "" unquantified_variables
+  in
+  if List.length unquantified_variables = 0 then
+    print_string [ white ] (Odyssey.PropEval.latex_of_eval_prop prop data)
+  else
+    print_string [ white ]
+      ("Missing variables: " ^ string_unquantified_variables ^ "\n");
+  true
+
 let rec user_loop (prop : Odyssey.PropEval.t option)
     (data : Odyssey.PropEval.data option) =
   print_string [ green ]
@@ -248,6 +262,16 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
           print_string [ red ]
             "You do not have a proposition to export to Latex";
           user_loop prop data)
+  | "Latex Evaluate Export" ->
+      (match (prop, data) with
+      | Some p, Some d ->
+          let _ = latex_of_eval_prop p d in
+          user_loop prop data
+      | _ ->
+          print_string [ red ]
+            "Please make sure you have a proposition and variables before \
+             using this feature!");
+      user_loop prop data
   | "CNF" -> (
       match prop with
       | Some p ->

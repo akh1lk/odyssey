@@ -132,13 +132,11 @@ let clean_intial_parenthesis (lst : string list) =
       else lst
 
 let preprocess_string str =
-  let lst = Str.split (Str.regexp "") str in
-  let final_lst = clean_intial_parenthesis lst in
-  List.fold_left ( ^ ) "" final_lst
+  let lst = tokenizer str in
+  clean_intial_parenthesis lst
 
 let split_string str =
-  let str = preprocess_string str in
-  let expr_lst = tokenizer str in
+  let expr_lst = preprocess_string str in
   let rec combine_with_parenthesis parenbool combinedelement lst parencount =
     match lst with
     | [] -> []
@@ -167,7 +165,7 @@ let split_string str =
 let process_string_list lst =
   if List.length lst = 1 then
     match lst with
-    | h :: [] -> tokenizer h
+    | h :: [] -> split_string h
     | _ -> raise InvalidProposition
   else lst
 
@@ -373,6 +371,47 @@ let rec latex_of_prop_with_prec (p : prop) (prec : int) : string =
       wrap (prec > 0) (s1 ^ " \\leftrightarrow " ^ s2)
 
 let latex_of_prop p = "$" ^ latex_of_prop_with_prec p 0 ^ "$"
+
+let rec latex_of_eval_prop p info =
+  match p with
+  | Var x ->
+      "\\text{Evaluating variable } $" ^ x ^ "$ = "
+      ^ string_of_bool (StringHashtbl.find info x)
+      ^ "\n"
+  | Not p1 ->
+      latex_of_eval_prop p1 info ^ "\n" ^ "\\text{Evaluating } $\\lnot("
+      ^ latex_of_prop_with_prec p1 3
+      ^ ")$ = "
+      ^ string_of_bool (eval_prop p info)
+      ^ "\n"
+  | And (p1, p2) ->
+      latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
+      ^ "\\text{Evaluating } $"
+      ^ latex_of_prop_with_prec p 2
+      ^ "$ = "
+      ^ string_of_bool (eval_prop p info)
+      ^ "\n"
+  | Or (p1, p2) ->
+      latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
+      ^ "\\text{Evaluating } $"
+      ^ latex_of_prop_with_prec p 1
+      ^ "$ = "
+      ^ string_of_bool (eval_prop p info)
+      ^ "\n"
+  | Implies (p1, p2) ->
+      latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
+      ^ "\\text{Evaluating } $"
+      ^ latex_of_prop_with_prec p 0
+      ^ "$ = "
+      ^ string_of_bool (eval_prop p info)
+      ^ " \n"
+  | Biconditional (p1, p2) ->
+      latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
+      ^ "\\text{Evaluating } $"
+      ^ latex_of_prop_with_prec p 0
+      ^ "$ = "
+      ^ string_of_bool (eval_prop p info)
+      ^ " \n"
 
 (* Implementation of SAT Solver Below *)
 
