@@ -795,7 +795,6 @@ let simplification_tests =
          (* Complex expression simplifications *)
          make_simplify_test "Compound AND expressions" "(x v y) ^ x"
            [ "y true" ] "x";
-         make_simplify_test "Example from prompt" "(x v y) ^ x" [ "y true" ] "x";
          make_simplify_test "Complex nested expressions" "~(x ^ ~y)"
            [ "x true"; "y true" ] "y";
          make_simplify_test "No simplification needed" "(x v y) ^ z" []
@@ -842,15 +841,12 @@ let dimacs_tests =
 let satisfiability_tests =
   "Satisfiability Tests"
   >::: [
-         (* Basic satisfiability *)
          make_sat_test "SAT: Simple variable" "x" true;
          make_sat_test "SAT: NOT variable" "~x" true;
          make_sat_test "SAT: AND satisfiable" "x ^ y" true;
          make_sat_test "SAT: OR satisfiable" "x v y" true;
-         (* Contradiction and tautology *)
          make_sat_test "SAT: Contradiction" "x ^ ~x" false;
          make_sat_test "SAT: Tautology" "x v ~x" true;
-         (* Complex cases *)
          make_sat_test "SAT: Complex satisfiable" "(x v y) ^ (x v ~y)" true;
          make_sat_test "SAT: Complex unsatisfiable" "(x v y) ^ (~x) ^ (~y)"
            false;
