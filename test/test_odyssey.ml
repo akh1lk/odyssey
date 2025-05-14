@@ -799,6 +799,37 @@ let simplification_tests =
            [ "x true"; "y true" ] "y";
          make_simplify_test "No simplification needed" "(x v y) ^ z" []
            "(x v y) ^ z";
+         (* Biconditional*)
+         make_simplify_test "Biconditional with left true" "x <-> y"
+           [ "x true" ] "y";
+         make_simplify_test "Biconditional with right true" "x <-> y"
+           [ "y true" ] "x";
+         make_simplify_test "Biconditional with left false" "x <-> y"
+           [ "x false" ] "~y";
+         make_simplify_test "Biconditional with right false" "x <-> y"
+           [ "y false" ] "~x";
+         make_simplify_test "Biconditional with complex expressions"
+           "(x ^ y) <-> (x v z)" [] "(x ^ y) <-> (x v z)";
+         make_simplify_test "Biconditional with compound expressions"
+           "(a ^ b) <-> (c v d)" [] "(a ^ b) <-> (c v d)";
+         make_simplify_test "Biconditional in larger expression" "p ^ (q <-> r)"
+           [ "p true" ] "q <-> r";
+         make_simplify_test "Nested biconditionals" "(p <-> q) <-> r" []
+           "(p <-> q) <-> r";
+         make_simplify_test "Biconditional with negation" "~p <-> q"
+           [ "q true" ] "~p";
+         make_simplify_test
+           "Biconditional with complex left, simple right (true)"
+           "(x ^ y) <-> z" [ "z true" ] "x ^ y";
+         make_simplify_test
+           "Biconditional with complex left, simple right (false)"
+           "(x ^ y) <-> z" [ "z false" ] "~(x ^ y)";
+         make_simplify_test
+           "Biconditional with simple left, complex right (true)"
+           "z <-> (x ^ y)" [ "z true" ] "x ^ y";
+         make_simplify_test
+           "Biconditional with simple left, complex right (false)"
+           "z <-> (x ^ y)" [ "z false" ] "~(x ^ y)";
        ]
 
 (* Tests for CNF conversion *)
