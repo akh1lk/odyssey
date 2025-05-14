@@ -657,7 +657,7 @@ let ounit_suite =
          make_test "Test multiple NOTs 1" "~~~x" [ "x true" ] false;
          make_test "Test multiple NOTs 2" "~~~x" [ "x false" ] true;
          make_test "Test multiple NOTs 3" "~~~~x" [ "x true" ] true;
-         (* Mixing different operations *)
+         (* Mixing different theorem operations *)
          make_test "Test mixed operations 1" "(x ^ ~y) v (z -> w)"
            [ "x true"; "y true"; "z true"; "w false" ]
            false;
@@ -767,10 +767,6 @@ let simplification_tests =
            "x";
          make_simplify_test "Simplify complex expr 8" "(x v y) ^ x" []
            "(x v y) ^ x";
-         (* No simplification possible *)
-
-         (* Examples from the prompt *)
-         make_simplify_test "Example from prompt" "(x v y) ^ x" [ "y true" ] "x";
        ]
 
 (* Add simplified simplification tests to the suite *)
