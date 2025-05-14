@@ -181,6 +181,9 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
   print_string [ green ]
     "If you would like to evaluate your proposition, then type 'Evaluate Prop' \n";
   print_string [ green ]
+    "If you want to simplify your proposition based on the variables you have \
+     and save that proposition, then type 'Simplify Prop' \n";
+  print_string [ green ]
     "If you like to export to LaTex via a copy-pastable string, then type \
      'Latex Export' \n";
   print_string [ green ]
@@ -195,9 +198,6 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
     "If you would like to export to DIMACS format, then type 'DIMACS' \n";
   print_string [ green ]
     "If you would like to check satisfiability, then type 'SAT' \n";
-  print_string [ green ]
-    "If you want to simplify your proposition based on the variables you have \
-     and save that proposition, then type 'Simplify Prop' \n";
   print_string [ green ]
     "If you would like to check for tautology, then type 'Tautology' \n";
   print_string [ green ]
