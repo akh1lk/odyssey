@@ -39,7 +39,9 @@ val eval_prop : t -> data -> bool
 (** [eval_prop prop data] evaluates the proposition [prop] using the truth
     values provided in [data]. Requires: No unquantified variables*)
 
-val eval_prop_string: t -> data -> (string*string)list
+val eval_prop_string: t -> data -> (string * string) list
+(** [eval_prop_string prop data] returns a list of (color, message) pairs
+    that show each step in evaluating [prop] using [data]. *)
 
 val latex_of_prop : t -> string
 (** [latex_of_prop p] returns a string of LaTeX-interpretable code of the
@@ -47,8 +49,12 @@ val latex_of_prop : t -> string
     parsed when written to a file. *)
 
 val latex_of_eval_prop: t -> data -> string
+(** [latex_of_eval_prop prop data] returns a LaTeX string that shows the
+    evaluation steps of [prop] using [data]. *)
 
 val latex_document_export: t -> data -> unit
+(** [latex_document_export prop data] writes a LaTeX file with the proposition
+    and its evaluation using [data]. *)
 
 val find_variables : t -> string list
 (** [find_variables prop] returns a list of variables present in the proposition [prop]. *)
