@@ -72,3 +72,7 @@ are equivalent *)
 val cnf_of_prop : t -> t
 (** [cnf_of_prop prop] returns a proposition logically equivalent to [prop] 
     in Conjunctive Normal Form (CNF). *)
+
+val dimacs_of_prop  : t -> string
+(** [dimacs_of_prop prop] returns a string representation of the CNF form
+of a proposition in DIMACS format, a format recognized by popular SAT Solvers *)

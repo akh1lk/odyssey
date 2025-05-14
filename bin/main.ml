@@ -173,6 +173,8 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
   print_string [ green ]
     "If you would like to export to CNF form, then type 'CNF' \n";
   print_string [ green ]
+    "If you would like to export to DIMACS format, then type 'DIMACS' \n";
+  print_string [ green ]
     "If you would like to check satisfiability, then type 'SAT' \n";
   print_string [ green ]
     "If you want to simplify your proposition based on the variables you have \
@@ -284,6 +286,15 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
           user_loop prop data
       | None ->
           print_string [ red ] "no proposition to convert to CNF\n";
+          user_loop prop data)
+  | "DIMACS" -> (
+      match prop with
+      | Some p ->
+          let dimacs_str = Odyssey.PropEval.dimacs_of_prop p in
+          print_string [ red ] (dimacs_str ^ "\n");
+          user_loop prop data
+      | None ->
+          print_string [ red ] "no proposition to convert to DIMACS\n";
           user_loop prop data)
   | "SAT" -> (
       match prop with

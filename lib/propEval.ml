@@ -498,6 +498,76 @@ let is_satisfiable prop =
 let is_tautology prop = not (is_satisfiable (Not prop))
 let equivalent a b = is_satisfiable (Biconditional (a, b))
 
+(* Step 3: Convert to DIMACs for External SAT Solver *)
+
+(* signed var for clause representation in dimacs *)
+type svar =
+  | Pos of string
+  | Neg of string
+
+let rec vars_of = function
+  | Or (p, q) -> vars_of p @ vars_of q
+  | Not (Var x) -> [ Neg x ]
+  | Var x -> [ Pos x ]
+  | _ -> failwith "expected input in form [a v b v c ...]"
+
+let rec clauses_of = function
+  | And (p, q) -> clauses_of p @ clauses_of q
+  | p -> [ vars_of p ]
+
+let cnf_clauses prop = prop |> cnf_of_prop |> clauses_of
+
+(* converts cnf clause to a dimacs string *)
+let dimacs_of_clauses clauses : string =
+  (* var name to a DIMACS int id *)
+  let tbl = Hashtbl.create 16 in
+  let nxt_id = ref 1 in
+
+  (* helper to lookup or create new id *)
+  let get_id v =
+    match Hashtbl.find_opt tbl v with
+    | Some i -> i
+    | None ->
+        (* add new var to hashtable *)
+        let ind = !nxt_id in
+        Hashtbl.add tbl v ind;
+        incr nxt_id;
+        ind
+  in
+  (* get all var names from clauses *)
+  let _ =
+    List.iter
+      (fun clause ->
+        List.iter
+          (function
+            | Pos v -> ignore (get_id v)
+            | Neg v -> ignore (get_id v))
+          clause)
+      clauses
+  in
+
+  (* header *)
+  let numvars = Hashtbl.length tbl in
+  let numclauses = List.length clauses in
+  let header =
+    "p cnf " ^ string_of_int numvars ^ " " ^ string_of_int numclauses
+  in
+
+  (* helper for converting a clause to cnf style *)
+  let clause_to_dimacs clause =
+    clause
+    |> List.map (function
+         | Pos v -> string_of_int (get_id v)
+         | Neg v -> "-" ^ string_of_int (get_id v))
+    |> fun vs -> String.concat " " vs ^ " 0"
+  in
+
+  (* convert all clauses *)
+  let clause_lines = List.map clause_to_dimacs clauses in
+  String.concat "\n" (header :: clause_lines)
+
+let dimacs_of_prop prop = prop |> cnf_clauses |> dimacs_of_clauses
+
 (** [simplify_prop prop data] simplifies a proposition by substituting
     quantified variables. *)
 let rec simplify_prop prop data =
