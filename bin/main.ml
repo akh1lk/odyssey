@@ -274,19 +274,19 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
             "You don't have a proposition to evaluate. Please input one using \
              'Prop Input'.\n";
           user_loop prop data)
-  | "Latex Export" -> (
+  | "LaTeX Export" -> (
       match prop with
       | Some p ->
           print_string [ red ]
-            ("Copy Paste this into Latex: \n"
+            ("Copy Paste this into LaTeX: \n"
             ^ Odyssey.PropEval.latex_of_prop p
             ^ "\n");
           user_loop prop data
       | None ->
           print_string [ red ]
-            "You do not have a proposition to export to Latex\n";
+            "You do not have a proposition to export to LaTeX\n";
           user_loop prop data)
-  | "Latex Evaluate Export" -> (
+  | "LaTeX Evaluate Export" -> (
       match (prop, data) with
       | Some p, Some d ->
           let _ = latex_of_eval_prop p d in
@@ -297,7 +297,7 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
             "Please make sure you have a proposition and variables before \
              using this feature!\n";
           user_loop prop data)
-  | "Latex Document Export" -> (
+  | "LaTeX Document Export" -> (
       match (prop, data) with
       | Some p, Some d ->
           let _ = latex_document_export p d in
