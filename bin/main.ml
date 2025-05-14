@@ -24,9 +24,7 @@ let rec prop_input () =
          OR: v\n\
          IMPLIES: ->\n\
          BICONDITIONAL: <->\n\
-         Additionally, you must not wrap your entire proposition in Parenthesis:\n\
          '(x v y) -> z' is a valid Proposition \n\
-         '((x v y)->z)' is NOT a valid proposition \n\
          If no parentheses are specified then the conventional precedence of \
          operations is followed in mathematics. The order in which the \
          operators are displayed in the instructions is from highest priority \
@@ -185,13 +183,13 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
      and save that proposition, then type 'Simplify Prop' \n";
   print_string [ green ]
     "If you like to export to LaTex via a copy-pastable string, then type \
-     'Latex Export' \n";
+     'LaTex Export' \n";
   print_string [ green ]
     ("If you would like to export the evaluation process in a bottom up \
-      approach, then type 'Latex Evaluate Export'" ^ "\n");
+      approach, then type 'LaTex Evaluate Export'" ^ "\n");
   print_string [ green ]
     "If you would like to export the proposition and evaluation process to a \
-     Latex Document, then type 'Latex Document Export'\n";
+     LaTex Document, then type 'LaTex Document Export'\n";
   print_string [ green ]
     "If you would like to export to CNF form, then type 'CNF' \n";
   print_string [ green ]
