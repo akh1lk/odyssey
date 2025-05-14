@@ -443,19 +443,22 @@ let rec to_nnf = function
   | p -> p
 
 (** Step 1.3: NNF to CNF by distributing OR over AND *)
-let rec distribute_or = function
-  (* the main distributing work *)
+let rec distribute = function
   | Or (p, And (q, r)) ->
-      And (distribute_or (Or (p, q)), distribute_or (Or (p, r)))
+      (* push this Or inside the And *)
+      let left = distribute (Or (p, q)) in
+      let right = distribute (Or (p, r)) in
+      distribute (And (left, right))
   | Or (And (q, r), p) ->
-      And (distribute_or (Or (q, p)), distribute_or (Or (r, p)))
-  (* keep rest the same *)
-  | And (p1, p2) -> And (distribute_or p1, distribute_or p2)
-  | Or (p1, p2) -> Or (distribute_or p1, distribute_or p2)
+      let left = distribute (Or (q, p)) in
+      let right = distribute (Or (r, p)) in
+      distribute (And (left, right))
+  | And (p, q) -> And (distribute p, distribute q)
+  | Or (p, q) -> Or (distribute p, distribute q)
   | p -> p
 
 (** Step 1.4: Takes in a proposition and converts it to CNF form *)
-let cnf_of_prop p = p |> eliminate_implies |> to_nnf |> distribute_or
+let cnf_of_prop p = p |> eliminate_implies |> to_nnf |> distribute
 
 (* Step 2: Brute Force SAT (Satisfiability) Solver *)
 
@@ -506,14 +509,19 @@ type svar =
   | Neg of string
 
 let rec vars_of = function
-  | Or (p, q) -> vars_of p @ vars_of q
+  | Or (p1, p2) -> vars_of p1 @ vars_of p2
   | Not (Var x) -> [ Neg x ]
   | Var x -> [ Pos x ]
-  | _ -> failwith "expected input in form [a v b v c ...]"
+  | p ->
+      (* unexpected structure *)
+      failwith ("Invalid clause in CNF: " ^ print_prop p)
 
 let rec clauses_of = function
   | And (p, q) -> clauses_of p @ clauses_of q
-  | p -> [ vars_of p ]
+  | p ->
+      let clause = vars_of p in
+      if clause = [] then failwith "Invalid clause structure for DIMACS"
+      else [ clause ]
 
 let cnf_clauses prop = prop |> cnf_of_prop |> clauses_of
 
