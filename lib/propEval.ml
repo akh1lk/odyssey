@@ -24,7 +24,7 @@ exception InvalidData
 let print_prop prop =
   let rec aux = function
     | Var x -> x
-    | Not p -> "¬(" ^ aux p ^ ")"
+    | Not p -> "~(" ^ aux p ^ ")"
     | And (p1, p2) -> "(" ^ aux p1 ^ " ^ " ^ aux p2 ^ ")"
     | Or (p1, p2) -> "(" ^ aux p1 ^ " v " ^ aux p2 ^ ")"
     | Implies (p1, p2) -> "(" ^ aux p1 ^ " -> " ^ aux p2 ^ ")"
