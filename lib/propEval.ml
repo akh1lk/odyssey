@@ -375,43 +375,66 @@ let latex_of_prop p = "$" ^ latex_of_prop_with_prec p 0 ^ "$"
 let rec latex_of_eval_prop p info =
   match p with
   | Var x ->
-      "\\text{Evaluating variable } $" ^ x ^ "$ = "
+      "Evaluating variable $" ^ x ^ "$ = "
       ^ string_of_bool (StringHashtbl.find info x)
-      ^ "\n"
+      ^ "\\\\"
   | Not p1 ->
-      latex_of_eval_prop p1 info ^ "\n" ^ "\\text{Evaluating } $\\lnot("
+      latex_of_eval_prop p1 info ^ "\n" ^ "Evaluating $\\lnot("
       ^ latex_of_prop_with_prec p1 3
       ^ ")$ = "
       ^ string_of_bool (eval_prop p info)
-      ^ "\n"
+      ^ "\\\\"
   | And (p1, p2) ->
       latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
-      ^ "\\text{Evaluating } $"
+      ^ "Evaluating $"
       ^ latex_of_prop_with_prec p 2
       ^ "$ = "
       ^ string_of_bool (eval_prop p info)
-      ^ "\n"
+      ^ "\\\\"
   | Or (p1, p2) ->
       latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
-      ^ "\\text{Evaluating } $"
+      ^ "Evaluating $"
       ^ latex_of_prop_with_prec p 1
       ^ "$ = "
       ^ string_of_bool (eval_prop p info)
-      ^ "\n"
+      ^ "\\\\"
   | Implies (p1, p2) ->
       latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
-      ^ "\\text{Evaluating } $"
+      ^ "Evaluating $"
       ^ latex_of_prop_with_prec p 0
       ^ "$ = "
       ^ string_of_bool (eval_prop p info)
-      ^ " \n"
+      ^ " \\\\"
   | Biconditional (p1, p2) ->
       latex_of_eval_prop p1 info ^ "\n" ^ latex_of_eval_prop p2 info ^ "\n"
-      ^ "\\text{Evaluating } $"
+      ^ "Evaluating $"
       ^ latex_of_prop_with_prec p 0
       ^ "$ = "
       ^ string_of_bool (eval_prop p info)
-      ^ " \n"
+      ^ "\\\\"
+
+let latex_document_export prop info =
+  (*Accessed https://ocaml.org/docs/file-manipulation to understand how to
+    output our string to a file. 5/14/2025 *)
+  let file = "PropositionLatex.tex" in
+  let output =
+    "\\documentclass{article}\n\n\
+     \\usepackage{graphicx}\n\n\
+     \\usepackage{amsmath}\n\n\
+     \\title{Proposition Document}\n\n\n\n\
+     \\begin{document}\n\n\n\
+     \\maketitle\n\n\n\
+     \\section{Proposition}\n" ^ latex_of_prop prop
+    ^ "\n\\section{Evaluation}\n"
+    ^ latex_of_eval_prop prop info
+    ^ "\n\\end{document}"
+  in
+  let () =
+    let oc = open_out file in
+    Printf.fprintf oc "%s\n" output;
+    close_out oc
+  in
+  ()
 
 (* Implementation of SAT Solver Below *)
 

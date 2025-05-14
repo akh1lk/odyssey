@@ -48,6 +48,8 @@ val latex_of_prop : t -> string
 
 val latex_of_eval_prop: t -> data -> string
 
+val latex_document_export: t -> data -> unit
+
 val find_variables : t -> string list
 (** [find_variables prop] returns a list of variables present in the proposition [prop]. *)
 

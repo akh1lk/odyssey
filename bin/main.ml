@@ -149,6 +149,22 @@ let latex_of_eval_prop prop data =
       ("Missing variables: " ^ string_unquantified_variables ^ "\n");
   true
 
+let latex_document_export prop data =
+  let unquantified_variables =
+    Odyssey.PropEval.unquantified_variables data prop
+  in
+  let string_unquantified_variables =
+    List.fold_left (fun x y -> x ^ " " ^ y) "" unquantified_variables
+  in
+  if List.length unquantified_variables = 0 then
+    let _ = Odyssey.PropEval.latex_document_export prop data in
+    print_string [ white ]
+      "Your document has been exported to the working directory of the codebase"
+  else
+    print_string [ white ]
+      ("Missing variables: " ^ string_unquantified_variables ^ "\n");
+  true
+
 let rec user_loop (prop : Odyssey.PropEval.t option)
     (data : Odyssey.PropEval.data option) =
   print_string [ green ]
@@ -168,8 +184,11 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
     "If you like to export to LaTex via a copy-pastable string, then type \
      'Latex Export' \n";
   print_string [ green ]
-    "If you would like to export the evaluation process in a bottom up \
-     approach, then type 'Latex Evaluate Export";
+    ("If you would like to export the evaluation process in a bottom up \
+      approach, then type 'Latex Evaluate Export'" ^ "\n");
+  print_string [ green ]
+    "If you would like to export the proposition and evaluation process to a \
+     Latex Document, then type 'Latex Document Export'\n";
   print_string [ green ]
     "If you would like to export to CNF form, then type 'CNF' \n";
   print_string [ green ]
@@ -263,18 +282,30 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
           user_loop prop data
       | None ->
           print_string [ red ]
-            "You do not have a proposition to export to Latex";
+            "You do not have a proposition to export to Latex\n";
           user_loop prop data)
-  | "Latex Evaluate Export" ->
-      (match (prop, data) with
+  | "Latex Evaluate Export" -> (
+      match (prop, data) with
       | Some p, Some d ->
           let _ = latex_of_eval_prop p d in
+          print_string [ white ] "\n";
           user_loop prop data
       | _ ->
           print_string [ red ]
             "Please make sure you have a proposition and variables before \
-             using this feature!");
-      user_loop prop data
+             using this feature!\n";
+          user_loop prop data)
+  | "Latex Document Export" -> (
+      match (prop, data) with
+      | Some p, Some d ->
+          let _ = latex_document_export p d in
+          print_string [ white ] "\n";
+          user_loop prop data
+      | _ ->
+          print_string [ red ]
+            "Please make sure you have a proposition and variables before \
+             using this feature!\n";
+          user_loop prop data)
   | "CNF" -> (
       match prop with
       | Some p ->
