@@ -168,6 +168,9 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
     "If you like to export to LaTex via a copy-pastable string, then type \
      'Latex Export' \n";
   print_string [ green ]
+    "If you would like to export the evaluation process in a bottom up \
+     approach, then type 'Latex Evaluate Export";
+  print_string [ green ]
     "If you would like to export to CNF form, then type 'CNF' \n";
   print_string [ green ]
     "If you would like to check satisfiability, then type 'SAT' \n";
