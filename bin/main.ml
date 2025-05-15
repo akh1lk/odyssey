@@ -323,7 +323,7 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
           print_string [ red ] (dimacs_str ^ "\n");
           user_loop prop data
       | None ->
-          print_string [ red ] "no proposition to convert to DIMACS\n";
+          print_string [ red ] "No Proposition to convert to DIMACS\n";
           user_loop prop data)
   | "SAT" -> (
       match prop with
@@ -331,10 +331,10 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
           let sat = Odyssey.PropEval.is_satisfiable p in
 
           print_string [ red ]
-            (if sat then "satisfiable\n" else "unsatisfiable\n");
+            (if sat then "Satisfiable\n" else "Unsatisfiable\n");
           user_loop prop data
       | None ->
-          print_string [ red ] "no proposition to test\n";
+          print_string [ red ] "No Proposition to test\n";
           user_loop prop data)
   | "Valid Prop" -> (
       match prop with
@@ -348,20 +348,20 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
               print_endline "";
               user_loop prop data
           | None ->
-              print_string [ red ] "no satisfying assignment\n";
+              print_string [ red ] "No Satisfying Assignment\n";
               user_loop prop data)
       | None ->
-          print_string [ red ] "no proposition to test\n";
+          print_string [ red ] "No Proposition to test\n";
           user_loop prop data)
   | "Tautology" -> (
       match prop with
       | Some p ->
           let taut = Odyssey.PropEval.is_tautology p in
           print_string [ red ]
-            (if taut then "tautology\n" else "not a tautology\n");
+            (if taut then "Tautology\n" else "Not a Tautology\n");
           user_loop prop data
       | None ->
-          print_string [ red ] "no proposition to test\n";
+          print_string [ red ] "No Proposition to test\n";
           user_loop prop data)
   | "Simplify Prop" -> (
       match (prop, data) with
@@ -371,14 +371,15 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
   | "Equivalent" -> (
       match prop with
       | Some p ->
-          print_string [ magenta ] "enter second proposition for equivalence:\n";
+          print_string [ magenta ]
+            "Enter a Second Proposition for Equivalence:\n";
           let q = prop_input () in
           let equal = Odyssey.PropEval.equivalent p q in
           print_string [ red ]
-            (if equal then "equivalent\n" else "not equivalent\n");
+            (if equal then "Equivalent\n" else "Not Equivalent\n");
           user_loop prop data
       | None ->
-          print_string [ red ] "no proposition to test\n";
+          print_string [ red ] "No Proposition to test\n";
           user_loop prop data)
   | "Exit" -> ()
   | _ ->
