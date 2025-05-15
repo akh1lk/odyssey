@@ -36,7 +36,8 @@ let rec prop_input () =
          assignments\n\
          'Equivalent' - check if your current proposition is logically \
          equivalent to another proposition you input\n\
-         'CNF' - export the proposition to Conjunctive Normal Form (CNF)\n";
+         'CNF' - export the proposition to Conjunctive Normal Form (CNF)\n\
+         Also, please make sure that variable names are single letters ONLY\n";
       prop_input ()
   | _ -> (
       try
