@@ -2,7 +2,7 @@ open OUnit2
 open QCheck
 open Odyssey
 
-(* helper: eval_prop tests *)
+(* Helper for proposition evaluation tests *)
 let make_test name prop_str data_lst expected =
   name >:: fun _ ->
   let prop = PropEval.parse_prop prop_str in
@@ -10,7 +10,7 @@ let make_test name prop_str data_lst expected =
   let result = PropEval.eval_prop prop data in
   assert_equal expected result ~printer:string_of_bool
 
-(* helper: latex tests with improved printing *)
+(* Helper for LaTeX printing tests *)
 let make_latex_test name prop_str expected =
   name >:: fun _ ->
   let actual = PropEval.latex_of_prop (PropEval.parse_prop prop_str) in
@@ -20,7 +20,7 @@ let make_latex_test name prop_str expected =
     ~pp_diff:(fun fmt (expected, actual) ->
       Format.fprintf fmt "Expected: %s\nActual: %s" expected actual)
 
-(* helper: unquant_vars tests *)
+(* Unquantified variables tests helper *)
 let make_unquant_vars_test name prop_str data_lst expected =
   name >:: fun _ ->
   assert_equal expected
@@ -29,7 +29,7 @@ let make_unquant_vars_test name prop_str data_lst expected =
        (PropEval.parse_prop prop_str))
     ~printer:(fun lst -> "[" ^ String.concat "; " lst ^ "]")
 
-(* Helper for simplification tests with better error reporting *)
+(* Simplify proposition tests helper *)
 let make_simplify_test name prop_str data_lst expected_prop_str =
   name >:: fun _ ->
   let prop = PropEval.parse_prop prop_str in
@@ -46,17 +46,17 @@ let make_simplify_test name prop_str data_lst expected_prop_str =
       )
   else assert_bool name true
 
-(* Helper: check if a string contains a substring *)
+(* Helper function to check if a string contains a substring *)
+let rec string_contains_aux s sub i length length_sub =
+  if i > length - length_sub then false
+  else if String.sub s i length_sub = sub then true
+  else string_contains_aux s sub (i + 1) length length_sub
+
 let string_contains s sub =
   try
-    let len_s = String.length s in
-    let len_sub = String.length sub in
-    let rec aux i =
-      if i > len_s - len_sub then false
-      else if String.sub s i len_sub = sub then true
-      else aux (i + 1)
-    in
-    aux 0
+    let length = String.length s in
+    let length_sub = String.length sub in
+    string_contains_aux s sub 0 length length_sub
   with _ -> false
 
 (* Helper function for testing DIMACS format output *)
@@ -95,8 +95,6 @@ let make_eval_prop_string_test name prop_str data_lst expected_color
   let prop = PropEval.parse_prop prop_str in
   let data = PropEval.create_data data_lst in
   let result = PropEval.eval_prop_string prop data in
-  (* Check if any pair in the result list contains both the expected color and
-     text *)
   let contains_expected =
     List.exists
       (fun (color, text) ->
@@ -108,7 +106,7 @@ let make_eval_prop_string_test name prop_str data_lst expected_color
    ^ "' and text containing '" ^ expected_text ^ "'")
     contains_expected
 
-(* Helper for latex evaluation tests with improved printing *)
+(* Helper for latex evaluation tests *)
 let make_latex_eval_test name prop_str data_lst expected_pattern =
   name >:: fun _ ->
   let prop = PropEval.parse_prop prop_str in
@@ -120,7 +118,7 @@ let make_latex_eval_test name prop_str data_lst expected_pattern =
      ^ "'\nActual output: '" ^ latex ^ "'")
   else assert_bool name true
 
-(* qcheck: prop gen *)
+(* QCheck: proposition generation *)
 let var_gen =
   Gen.oneof
     [
@@ -133,14 +131,11 @@ let var_gen =
     ]
 
 let rec prop_gen ~size =
-  if size <= 0 then
-    (* Base case: just variables *)
-    Gen.map (fun v -> v) var_gen
+  if size <= 0 then Gen.map (fun v -> v) var_gen
   else
-    (* Generate more complex propositions *)
     Gen.oneof
       [
-        (* Variable *)
+        (* VAR *)
         var_gen;
         (* NOT *)
         Gen.map (fun p -> "~" ^ p) (prop_gen ~size:(size - 1));
@@ -161,7 +156,7 @@ let rec prop_gen ~size =
           (prop_gen ~size:(size / 2));
       ]
 
-(* gen random data for vars *)
+(* random data for vars *)
 let data_gen vars =
   Gen.map
     (fun values ->
@@ -169,10 +164,9 @@ let data_gen vars =
     (Gen.list_repeat (List.length vars) Gen.bool)
 
 (* simple var finder *)
-let find_variables prop_str =
-  let chars = List.init (String.length prop_str) (String.get prop_str) in
-  let is_var_char c = ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') in
+let is_var_char c = ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
 
+let find_variables_from_chars chars =
   let vars = ref [] in
   List.iter
     (fun c ->
@@ -180,6 +174,10 @@ let find_variables prop_str =
         vars := String.make 1 c :: !vars)
     chars;
   !vars
+
+let find_variables prop_str =
+  let chars = List.init (String.length prop_str) (String.get prop_str) in
+  find_variables_from_chars chars
 
 (* prop: double negation holds *)
 let prop_double_negation =
@@ -198,7 +196,6 @@ let prop_double_negation =
           let prop = PropEval.parse_prop prop_str in
           let double_neg_prop = PropEval.parse_prop double_neg_prop_str in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -237,7 +234,6 @@ let prop_de_morgan =
           let neg_and_prop = PropEval.parse_prop neg_and_prop_str in
           let or_neg_prop = PropEval.parse_prop or_neg_prop_str in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -272,8 +268,6 @@ let prop_implication_as_or =
 
           let implies_prop = PropEval.parse_prop implies_prop_str in
           let or_prop = PropEval.parse_prop or_prop_str in
-
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -359,7 +353,6 @@ let prop_distribution_or_over_and =
           let left_prop = PropEval.parse_prop left_expr in
           let right_prop = PropEval.parse_prop right_expr in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -393,7 +386,6 @@ let prop_contraposition =
           let normal_prop = PropEval.parse_prop normal_impl in
           let contra_prop = PropEval.parse_prop contrapositive in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -424,7 +416,6 @@ let prop_triple_negation =
           let triple_neg_prop = PropEval.parse_prop triple_neg in
           let single_neg_prop = PropEval.parse_prop single_neg in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -457,7 +448,6 @@ let prop_commutative_and =
           let p_and_q_prop = PropEval.parse_prop p_and_q in
           let q_and_p_prop = PropEval.parse_prop q_and_p in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -490,7 +480,6 @@ let prop_commutative_or =
           let p_or_q_prop = PropEval.parse_prop p_or_q in
           let q_or_p_prop = PropEval.parse_prop q_or_p in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -524,7 +513,6 @@ let prop_associative_and =
           let p_and_qr_prop = PropEval.parse_prop p_and_qr in
           let pq_and_r_prop = PropEval.parse_prop pq_and_r in
 
-          (* Generate random values for variables *)
           let data_list =
             List.map
               (fun var -> var ^ " " ^ string_of_bool (Random.bool ()))
@@ -618,7 +606,7 @@ let ounit_suite =
          make_test "Test not implies 3" "~(x -> y)" [ "x true"; "y false" ] true;
          make_test "Test not implies 4" "~(x -> y)" [ "x false"; "y false" ]
            false;
-         (* More Complex Expressions *)
+         (* Even more complex expressions *)
          make_test "Test complex nested 1" "(~x v y) -> (z ^ w)"
            [ "x true"; "y false"; "z true"; "w true" ]
            true;
@@ -692,7 +680,7 @@ let ounit_suite =
            [ "x true"; "z false" ] [ "y" ];
        ]
 
-(* Add simplification tests to the suite *)
+(* Proposition Simplification Tests *)
 let simplification_tests =
   "Proposition Simplification Tests"
   >::: [
@@ -773,62 +761,61 @@ let simplification_tests =
 let simplification_tests =
   "Proposition Simplification Tests"
   >::: [
-         (* Basic simplification patterns *)
          make_simplify_test "Variable simplification" "x" [ "x true" ] "x";
          make_simplify_test "Double negation elimination" "~(~x)" [ "x true" ]
            "x";
          make_simplify_test "NOT with quantified variable" "~x" [ "x true" ]
            "~x";
-         (* AND operator simplifications *)
+         (* AND *)
          make_simplify_test "AND with true antecedent" "x ^ y" [ "x true" ] "y";
          make_simplify_test "AND with false operand" "x ^ y" [ "x false" ] "x";
          make_simplify_test "AND with redundant term" "x ^ x" [ "x true" ] "x";
-         (* OR operator simplifications *)
+         (* OR *)
          make_simplify_test "OR with false antecedent" "x v y" [ "x false" ] "y";
          make_simplify_test "OR with true operand" "x v y" [ "x true" ] "x";
          make_simplify_test "OR with redundant term" "x v x" [ "x true" ] "x";
-         (* IMPLIES operator simplifications *)
+         (* IMPLIES *)
          make_simplify_test "IMPLIES with true antecedent" "x -> y" [ "x true" ]
            "y";
          make_simplify_test "IMPLIES with false consequent" "x -> y"
            [ "y false" ] "~x";
-         (* Complex expression simplifications *)
+         (* Complex expressions *)
          make_simplify_test "Compound AND expressions" "(x v y) ^ x"
            [ "y true" ] "x";
          make_simplify_test "Complex nested expressions" "~(x ^ ~y)"
            [ "x true"; "y true" ] "y";
          make_simplify_test "No simplification needed" "(x v y) ^ z" []
            "(x v y) ^ z";
-         (* Biconditional*)
-         make_simplify_test "Biconditional with left true" "x <-> y"
+         (* BICONDITIONAL *)
+         make_simplify_test "BICONDITIONAL with left true" "x <-> y"
            [ "x true" ] "y";
-         make_simplify_test "Biconditional with right true" "x <-> y"
+         make_simplify_test "BICONDITIONAL with right true" "x <-> y"
            [ "y true" ] "x";
-         make_simplify_test "Biconditional with left false" "x <-> y"
+         make_simplify_test "BICONDITIONAL with left false" "x <-> y"
            [ "x false" ] "~y";
-         make_simplify_test "Biconditional with right false" "x <-> y"
+         make_simplify_test "BICONDITIONAL with right false" "x <-> y"
            [ "y false" ] "~x";
-         make_simplify_test "Biconditional with complex expressions"
+         make_simplify_test "BICONDITIONAL with complex expressions"
            "(x ^ y) <-> (x v z)" [] "(x ^ y) <-> (x v z)";
-         make_simplify_test "Biconditional with compound expressions"
+         make_simplify_test "BICONDITIONAL with compound expressions"
            "(a ^ b) <-> (c v d)" [] "(a ^ b) <-> (c v d)";
-         make_simplify_test "Biconditional in larger expression" "p ^ (q <-> r)"
+         make_simplify_test "BICONDITIONAL in larger expression" "p ^ (q <-> r)"
            [ "p true" ] "q <-> r";
-         make_simplify_test "Nested biconditionals" "(p <-> q) <-> r" []
+         make_simplify_test "Nested BICONDITIONALS" "(p <-> q) <-> r" []
            "(p <-> q) <-> r";
-         make_simplify_test "Biconditional with negation" "~p <-> q"
+         make_simplify_test "BICONDITIONAL with negation" "~p <-> q"
            [ "q true" ] "~p";
          make_simplify_test
-           "Biconditional with complex left, simple right (true)"
+           "BICONDITIONAL with complex left, simple right (true)"
            "(x ^ y) <-> z" [ "z true" ] "x ^ y";
          make_simplify_test
-           "Biconditional with complex left, simple right (false)"
+           "BICONDITIONAL with complex left, simple right (false)"
            "(x ^ y) <-> z" [ "z false" ] "~(x ^ y)";
          make_simplify_test
-           "Biconditional with simple left, complex right (true)"
+           "BICONDITIONAL with simple left, complex right (true)"
            "z <-> (x ^ y)" [ "z true" ] "x ^ y";
          make_simplify_test
-           "Biconditional with simple left, complex right (false)"
+           "BICONDITIONAL with simple left, complex right (false)"
            "z <-> (x ^ y)" [ "z false" ] "~(x ^ y)";
        ]
 
@@ -836,34 +823,29 @@ let simplification_tests =
 let cnf_tests =
   "CNF Conversion Tests"
   >::: [
-         (* Basic conversions *)
+         (* Basic *)
          make_cnf_test "Convert simple proposition to CNF" "x" "x";
          make_cnf_test "Convert NOT to CNF" "~x" "~(x)";
          make_cnf_test "Convert AND to CNF" "x ^ y" "x ^ y";
          make_cnf_test "Convert OR to CNF" "x v y" "x v y";
-         (* Implication elimination *)
          make_cnf_test "Convert implication to CNF" "x -> y" "~(x) v y";
-         (* Complex conversions *)
          make_cnf_test "Convert complex expression to CNF" "(x ^ y) -> z"
            "((~(x) v ~(y)) v z)";
          make_cnf_test "Convert nested implication to CNF" "x -> (y -> z)"
            "(~(x) v (~(y) v z))";
-         (* Distribution *)
          make_cnf_test "Distribute OR over AND in CNF" "x v (y ^ z)"
            "((x v y) ^ (x v z))";
          make_cnf_test "Distribute nested OR over AND in CNF"
            "w v (x v (y ^ z))" "(w v ((x v y) ^ (x v z)))";
        ]
 
-(* Tests for DIMACS format generation*)
+(* Tests for DIMACS format generation *)
 let dimacs_tests =
   "DIMACS Format Tests"
   >::: [
-         (* Basic DIMACS generation *)
          make_dimacs_test "Convert simple variable to DIMACS" "x" "p cnf 1 1";
          make_dimacs_test "Convert NOT to DIMACS" "~x" "-1 0";
          make_dimacs_test "Convert AND to DIMACS" "x ^ y" "p cnf 2 2";
-         (* Complex DIMACS *)
          make_dimacs_test "Convert complex expression to DIMACS" "(x v y) ^ ~z"
            "p cnf 3 2";
        ]
@@ -883,7 +865,7 @@ let satisfiability_tests =
            false;
        ]
 
-(* Tests for eval_prop_string *)
+(* Tests for string of evaluation process. *)
 let eval_string_tests =
   "Eval Prop String Tests"
   >::: [
@@ -902,7 +884,7 @@ let eval_string_tests =
            [ "x true"; "y true" ] "blue" "Evaluating '<->'";
        ]
 
-(* Tests for latex_of_eval_prop *)
+(* Tests for LaTeX evaluation process *)
 let latex_eval_tests =
   "LaTeX Evaluation Tests"
   >::: [
@@ -921,7 +903,6 @@ let latex_eval_tests =
            [ "x true"; "y true" ] "Evaluating $x \\leftrightarrow y$";
        ]
 
-(* Combine OUnit and QCheck tests *)
 let suite =
   "All Tests"
   >::: [
