@@ -16,7 +16,13 @@ module StringHashtbl = Hashtbl.Make (struct
 end)
 
 type t = prop
+(** AF: [t] is a concrete tree representing an abstract propositional logic
+    formula. Each constructor models a logical connective or variable; For ex,
+    [And (Var "x", Var "y")] represents "x ∧ y". RI: all constructors are
+    combined in syntactically valid ways. *)
 type data = bool StringHashtbl.t
+(** AF: [data] maps variable names (strings) to boolean truth values.
+    RI: each variable appears max once with value [true] or [false]. *)
 
 exception InvalidProposition
 exception InvalidData
@@ -522,7 +528,7 @@ let is_satisfiable prop =
   | Some x -> true
 
 let is_tautology prop = not (is_satisfiable (Not prop))
-let equivalent a b = is_satisfiable (Biconditional (a, b))
+let equivalent a b = is_tautology (Biconditional (a, b))
 
 (* Step 3: Convert to DIMACs for External SAT Solver *)
 
@@ -536,7 +542,7 @@ let rec vars_of = function
   | Not (Var x) -> [ Neg x ]
   | Var x -> [ Pos x ]
   | p ->
-      (* unexpected structure *)
+      (* unexpected prop (not in cnf form) *)
       failwith ("Invalid clause in CNF: " ^ print_prop p)
 
 let rec clauses_of = function

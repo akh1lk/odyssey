@@ -90,7 +90,7 @@ let style_fromstr str =
   | "yellow" -> yellow
   | "red" -> red
   | "green" -> green
-  | "magneta" -> magenta
+  | "magenta" -> magenta
   | "blue" -> blue
   | "cyan" -> cyan
   | "black" -> black
