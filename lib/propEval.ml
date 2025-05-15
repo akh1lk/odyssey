@@ -81,14 +81,6 @@ let rec find_prop lst prop_lst =
   | [] -> raise InvalidProposition
   | h :: t -> if find_prop_aux lst h then h else find_prop lst t
 
-let rec preprocess_lst lst =
-  match lst with
-  | [] -> []
-  | h :: t ->
-      if String.length h = 2 then
-        Str.string_before h 1 :: Str.string_after h 1 :: preprocess_lst t
-      else h :: preprocess_lst t
-
 let rec t_aux acc = function
   | [] -> acc
   | "<->" :: t -> t_aux (acc @ [ "<->" ]) t
@@ -463,22 +455,61 @@ let rec to_nnf = function
   | p -> p
 
 (** Step 1.3: NNF to CNF by distributing OR over AND *)
-let rec distribute = function
-  | Or (p, And (q, r)) ->
-      (* push this Or inside the And *)
-      let left = distribute (Or (p, q)) in
-      let right = distribute (Or (p, r)) in
-      distribute (And (left, right))
-  | Or (And (q, r), p) ->
-      let left = distribute (Or (q, p)) in
-      let right = distribute (Or (r, p)) in
-      distribute (And (left, right))
-  | And (p, q) -> And (distribute p, distribute q)
-  | Or (p, q) -> Or (distribute p, distribute q)
-  | p -> p
 
-(** Step 1.4: Takes in a proposition and converts it to CNF form *)
-let cnf_of_prop p = p |> eliminate_implies |> to_nnf |> distribute
+(* Helper: distribute Or over And until no Or is above And anywhere *)
+
+(** [distribute prop] fully distributes Or over And until no Or is above And
+    anywhere. *)
+let rec distribute prop =
+  let rec changed p =
+    match p with
+    | Or (p1, And (q, r)) ->
+        let left = changed (Or (p1, q)) in
+        let right = changed (Or (p1, r)) in
+        changed (And (left, right))
+    | Or (And (q, r), p2) ->
+        let left = changed (Or (q, p2)) in
+        let right = changed (Or (r, p2)) in
+        changed (And (left, right))
+    | And (p1, p2) -> And (changed p1, changed p2)
+    | Or (p1, p2) -> Or (changed p1, changed p2)
+    | p -> p
+  in
+  let rec fix f x =
+    let x' = f x in
+    if x' = x then x else fix f x'
+  in
+  fix changed prop
+
+(** Flatten nested Ors into a list of literals *)
+let rec flatten_or = function
+  | Or (p1, p2) -> flatten_or p1 @ flatten_or p2
+  | p -> [ p ]
+
+(** Flatten nested Ands into a list of conjuncts *)
+let rec flatten_and = function
+  | And (p1, p2) -> flatten_and p1 @ flatten_and p2
+  | p -> [ p ]
+
+(** Step 1.4: Takes in a proposition and converts it to fully flattened CNF form
+*)
+let cnf_of_prop p =
+  let after_dist = p |> eliminate_implies |> to_nnf |> distribute in
+  (* 1. flatten to list of conjuncts *)
+  let clauses = flatten_and after_dist in
+  (* 2. for each clause, flatten Ors and rebuild as flat Or tree *)
+  let flat_clauses =
+    List.map
+      (fun clause ->
+        match flatten_or clause with
+        | [] -> failwith "Empty CNF clause"
+        | hd :: tl -> List.fold_left (fun acc c -> Or (acc, c)) hd tl)
+      clauses
+  in
+  (* 3. rebuild CNF as a binary And tree of flat clauses *)
+  match flat_clauses with
+  | [] -> failwith "Empty CNF"
+  | hd :: tl -> List.fold_left (fun acc c -> And (acc, c)) hd tl
 
 (* Step 2: Brute Force SAT (Satisfiability) Solver *)
 
@@ -528,18 +559,18 @@ type svar =
   | Pos of string
   | Neg of string
 
-let rec vars_of = function
-  | Or (p1, p2) -> vars_of p1 @ vars_of p2
+(* Flatten a CNF clause into a list of signed literals, ensuring flat
+   disjunctions *)
+let rec flatten_or_literals = function
+  | Or (p1, p2) -> flatten_or_literals p1 @ flatten_or_literals p2
   | Not (Var x) -> [ Neg x ]
   | Var x -> [ Pos x ]
-  | p ->
-      (* unexpected prop (not in cnf form) *)
-      failwith ("Invalid clause in CNF: " ^ print_prop p)
+  | p -> failwith ("Invalid literal in CNF clause: " ^ print_prop p)
 
 let rec clauses_of = function
   | And (p, q) -> clauses_of p @ clauses_of q
   | p ->
-      let clause = vars_of p in
+      let clause = flatten_or_literals p in
       if clause = [] then failwith "Invalid clause structure for DIMACS"
       else [ clause ]
 

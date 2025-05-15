@@ -828,15 +828,15 @@ let cnf_tests =
          make_cnf_test "Convert NOT to CNF" "~x" "~(x)";
          make_cnf_test "Convert AND to CNF" "x ^ y" "x ^ y";
          make_cnf_test "Convert OR to CNF" "x v y" "x v y";
-         make_cnf_test "Convert implication to CNF" "x -> y" "~(x) v y";
+         make_cnf_test "Convert implication to CNF" "x -> y" "(~(x) v y)";
          make_cnf_test "Convert complex expression to CNF" "(x ^ y) -> z"
            "((~(x) v ~(y)) v z)";
          make_cnf_test "Convert nested implication to CNF" "x -> (y -> z)"
-           "(~(x) v (~(y) v z))";
+           "((~(x) v ~(y)) v z)";
          make_cnf_test "Distribute OR over AND in CNF" "x v (y ^ z)"
            "((x v y) ^ (x v z))";
          make_cnf_test "Distribute nested OR over AND in CNF"
-           "w v (x v (y ^ z))" "(w v ((x v y) ^ (x v z)))";
+           "w v (x v (y ^ z))" "(((w v x) v y) ^ ((w v x) v z))";
        ]
 
 (* Tests for DIMACS format generation *)
