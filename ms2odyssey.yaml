@@ -14,7 +14,7 @@ group:
 pm:
   name: Alex Gardocki
   netid: rag325
-publish: false
+publish: true
 
 title: "Odyssey's Magic Theorem Prover"
 
@@ -26,6 +26,7 @@ demo-video-url: "https://www.youtube.com/watch?v=H6IWzBIrO7U"
 desc: >
   Our project is a theorem prover where if you provide a proposition with variables, we can evaluate it for you! 
   If the user quantifies all variables to true or false, we will be able to show you the steps in evaluating the proposition and the final boolean value 
-  If you do not quantify all your variables, you will be told which ones you need to quantify. 
-  Additionally, we give you a string so you can exp2ort your proposition to LaTex! 
+  If you do not quantify all your variables, you will be told which ones you need to quantify, with an ability to simplify the proposition you have based on the current quantified variables
+  Additionally, there is multiple features such that you can export the proposition and evaluation process to a LaTeX document.
+  Finally, we have a SAT solver to determine if the proposition given is satisfiable through some combination of true/false for each of the variables
   Ultimately, all of this is encapsulated in a friendly user interface which can help you evaluate your propositions!
