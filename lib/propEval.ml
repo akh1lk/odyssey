@@ -20,23 +20,22 @@ type t = prop
     formula. Each constructor models a logical connective or variable; For ex,
     [And (Var "x", Var "y")] represents "x ∧ y". RI: all constructors are
     combined in syntactically valid ways. *)
+
 type data = bool StringHashtbl.t
-(** AF: [data] maps variable names (strings) to boolean truth values.
-    RI: each variable appears max once with value [true] or [false]. *)
+(** AF: [data] maps variable names (strings) to boolean truth values. RI: each
+    variable appears max once with value [true] or [false]. *)
 
 exception InvalidProposition
 exception InvalidData
 
-let print_prop prop =
-  let rec aux = function
-    | Var x -> x
-    | Not p -> "~(" ^ aux p ^ ")"
-    | And (p1, p2) -> "(" ^ aux p1 ^ " ^ " ^ aux p2 ^ ")"
-    | Or (p1, p2) -> "(" ^ aux p1 ^ " v " ^ aux p2 ^ ")"
-    | Implies (p1, p2) -> "(" ^ aux p1 ^ " -> " ^ aux p2 ^ ")"
-    | Biconditional (p1, p2) -> "(" ^ aux p1 ^ ") <-> (" ^ aux p2 ^ ")"
-  in
-  aux prop
+let rec print_prop = function
+  | Var x -> x
+  | Not p -> "~(" ^ print_prop p ^ ")"
+  | And (p1, p2) -> "(" ^ print_prop p1 ^ " ^ " ^ print_prop p2 ^ ")"
+  | Or (p1, p2) -> "(" ^ print_prop p1 ^ " v " ^ print_prop p2 ^ ")"
+  | Implies (p1, p2) -> "(" ^ print_prop p1 ^ " -> " ^ print_prop p2 ^ ")"
+  | Biconditional (p1, p2) ->
+      "(" ^ print_prop p1 ^ ") <-> (" ^ print_prop p2 ^ ")"
 
 let create_data (data_list : string list) : data =
   let table = StringHashtbl.create (List.length data_list) in
@@ -62,14 +61,14 @@ let data_to_string data =
     (fun x y acc -> "(" ^ x ^ " : " ^ string_of_bool y ^ ") " ^ acc)
     data ""
 
+let rec split_expr_helper lst find_symbol left_list =
+  match lst with
+  | [] -> raise InvalidProposition
+  | element :: rest ->
+      if element = find_symbol then (List.rev left_list, rest)
+      else split_expr_helper rest find_symbol (element :: left_list)
+
 let split_list_by_prop (expr_lst : string list) (find_symbol : string) =
-  let rec split_expr_helper lst find_symbol left_list =
-    match lst with
-    | [] -> raise InvalidProposition
-    | element :: rest ->
-        if element = find_symbol then (List.rev left_list, rest)
-        else split_expr_helper rest find_symbol (element :: left_list)
-  in
   split_expr_helper expr_lst find_symbol []
 
 let rec find_prop_aux lst prop =
@@ -81,14 +80,6 @@ let rec find_prop lst prop_lst =
   match prop_lst with
   | [] -> raise InvalidProposition
   | h :: t -> if find_prop_aux lst h then h else find_prop lst t
-
-let rec preprocess_lst lst =
-  match lst with
-  | [] -> []
-  | h :: t ->
-      if String.length h = 2 then
-        Str.string_before h 1 :: Str.string_after h 1 :: preprocess_lst t
-      else h :: preprocess_lst t
 
 let rec t_aux acc = function
   | [] -> acc
@@ -117,18 +108,18 @@ let rec countparen lst count =
         else countparen t count
       else -100
 
+let rec extract_helper lst =
+  match lst with
+  | h :: [] -> []
+  | h :: t -> h :: extract_helper t
+  | _ -> raise InvalidProposition
+
 let extract_lst lst =
-  let rec extract_helper lst =
-    match lst with
-    | h :: [] -> []
-    | h :: t -> h :: extract_helper t
-    | _ -> raise InvalidProposition
-  in
   match lst with
   | h :: t -> extract_helper t
   | _ -> raise InvalidProposition
 
-let clean_intial_parenthesis (lst : string list) =
+let clean_initial_parenthesis (lst : string list) =
   match lst with
   | [] -> raise InvalidProposition
   | h :: t ->
@@ -139,34 +130,29 @@ let clean_intial_parenthesis (lst : string list) =
 
 let preprocess_string str =
   let lst = tokenizer str in
-  clean_intial_parenthesis lst
+  clean_initial_parenthesis lst
+
+let rec combine_w_paren parenbool combinedelement lst parencount =
+  match lst with
+  | [] -> []
+  | h :: t ->
+      if parenbool then
+        if h = ")" then
+          if parencount = 0 then combinedelement :: combine_w_paren false "" t 0
+          else
+            combine_w_paren true (combinedelement ^ " " ^ h) t (parencount - 1)
+        else if h = "(" then
+          combine_w_paren true (combinedelement ^ " " ^ h) t (parencount + 1)
+        else
+          combine_w_paren true
+            (if combinedelement = "" then h else combinedelement ^ " " ^ h)
+            t parencount
+      else if h = "(" then combine_w_paren true "" t 0
+      else h :: combine_w_paren false "" t 0
 
 let split_string str =
   let expr_lst = preprocess_string str in
-  let rec combine_with_parenthesis parenbool combinedelement lst parencount =
-    match lst with
-    | [] -> []
-    | h :: t ->
-        if parenbool then
-          if h = ")" then
-            if parencount = 0 then
-              combinedelement :: combine_with_parenthesis false "" t 0
-            else
-              combine_with_parenthesis true
-                (combinedelement ^ " " ^ h)
-                t (parencount - 1)
-          else if h = "(" then
-            combine_with_parenthesis true
-              (combinedelement ^ " " ^ h)
-              t (parencount + 1)
-          else
-            combine_with_parenthesis true
-              (if combinedelement = "" then h else combinedelement ^ " " ^ h)
-              t parencount
-        else if h = "(" then combine_with_parenthesis true "" t 0
-        else h :: combine_with_parenthesis false "" t 0
-  in
-  combine_with_parenthesis false "" expr_lst 0
+  combine_w_paren false "" expr_lst 0
 
 let process_string_list lst =
   if List.length lst = 1 then
@@ -175,53 +161,50 @@ let process_string_list lst =
     | _ -> raise InvalidProposition
   else lst
 
-let parse_prop expr =
-  let expression_lst = split_string expr in
-  let rec parse_prop_helper expr_lst =
-    try
-      let proposition = find_prop expr_lst [ "<->"; "->"; "v"; "^"; "~" ] in
-      let unprocessed_left, unprocessed_right =
-        split_list_by_prop expr_lst proposition
-      in
-      let left = process_string_list unprocessed_left in
-      let right = process_string_list unprocessed_right in
-      match proposition with
-      | "->" -> Implies (parse_prop_helper left, parse_prop_helper right)
-      | "v" -> Or (parse_prop_helper left, parse_prop_helper right)
-      | "^" -> And (parse_prop_helper left, parse_prop_helper right)
-      | "~" -> Not (parse_prop_helper (left @ right))
-      | "<->" -> Biconditional (parse_prop_helper left, parse_prop_helper right)
-      | _ -> raise InvalidProposition
-    with _ -> (
-      match expr_lst with
-      | element :: [] -> Var element
-      | _ -> raise InvalidProposition)
-  in
-  parse_prop_helper expression_lst
+let rec parse_prop_helper expr_lst =
+  try
+    let proposition = find_prop expr_lst [ "<->"; "->"; "v"; "^"; "~" ] in
+    let unprocessed_left, unprocessed_right =
+      split_list_by_prop expr_lst proposition
+    in
+    let left = process_string_list unprocessed_left in
+    let right = process_string_list unprocessed_right in
+    match proposition with
+    | "->" -> Implies (parse_prop_helper left, parse_prop_helper right)
+    | "v" -> Or (parse_prop_helper left, parse_prop_helper right)
+    | "^" -> And (parse_prop_helper left, parse_prop_helper right)
+    | "~" -> Not (parse_prop_helper (left @ right))
+    | "<->" -> Biconditional (parse_prop_helper left, parse_prop_helper right)
+    | _ -> raise InvalidProposition
+  with _ -> (
+    match expr_lst with
+    | element :: [] -> Var element
+    | _ -> raise InvalidProposition)
 
-let rec find_variables_helper (prop : t) =
+let parse_prop expr = parse_prop_helper (split_string expr)
+
+let rec find_var_helper (prop : t) =
   match prop with
   | Var x -> [ x ]
-  | Not p -> find_variables_helper p
-  | And (p1, p2) -> find_variables_helper p1 @ find_variables_helper p2
-  | Or (p1, p2) -> find_variables_helper p1 @ find_variables_helper p2
-  | Implies (p1, p2) -> find_variables_helper p1 @ find_variables_helper p2
-  | Biconditional (p1, p2) ->
-      find_variables_helper p1 @ find_variables_helper p2
+  | Not p -> find_var_helper p
+  | And (p1, p2) -> find_var_helper p1 @ find_var_helper p2
+  | Or (p1, p2) -> find_var_helper p1 @ find_var_helper p2
+  | Implies (p1, p2) -> find_var_helper p1 @ find_var_helper p2
+  | Biconditional (p1, p2) -> find_var_helper p1 @ find_var_helper p2
 
 let find_variables (prop : t) =
-  List.sort_uniq String.compare (find_variables_helper prop)
+  List.sort_uniq String.compare (find_var_helper prop)
+
+let rec unquantified_variables_helper data lst =
+  match lst with
+  | [] -> []
+  | h :: t -> (
+      try
+        let _ = StringHashtbl.find data h in
+        unquantified_variables_helper data t
+      with _ -> h :: unquantified_variables_helper data t)
 
 let unquantified_variables data prop =
-  let rec unquantified_variables_helper data lst =
-    match lst with
-    | [] -> []
-    | h :: t -> (
-        try
-          let _ = StringHashtbl.find data h in
-          unquantified_variables_helper data t
-        with _ -> h :: unquantified_variables_helper data t)
-  in
   unquantified_variables_helper data (find_variables prop)
 
 let rec eval_prop (proposition : t) (info : data) =
@@ -420,8 +403,8 @@ let rec latex_of_eval_prop p info =
       ^ "\\\\"
 
 let latex_document_export prop info =
-  (*Accessed https://ocaml.org/docs/file-manipulation to understand how to
-    output our string to a file. 5/14/2025 *)
+  (*Accessed https://ocaml.org/docs/file-manipulation to learn how to output our
+    string to a file. 5/14/2025 (note citation is also in AUTHORS.md) *)
   let file = "PropositionLatex.tex" in
   let output =
     "\\documentclass{article}\n\n\
@@ -472,22 +455,61 @@ let rec to_nnf = function
   | p -> p
 
 (** Step 1.3: NNF to CNF by distributing OR over AND *)
-let rec distribute = function
-  | Or (p, And (q, r)) ->
-      (* push this Or inside the And *)
-      let left = distribute (Or (p, q)) in
-      let right = distribute (Or (p, r)) in
-      distribute (And (left, right))
-  | Or (And (q, r), p) ->
-      let left = distribute (Or (q, p)) in
-      let right = distribute (Or (r, p)) in
-      distribute (And (left, right))
-  | And (p, q) -> And (distribute p, distribute q)
-  | Or (p, q) -> Or (distribute p, distribute q)
-  | p -> p
 
-(** Step 1.4: Takes in a proposition and converts it to CNF form *)
-let cnf_of_prop p = p |> eliminate_implies |> to_nnf |> distribute
+(* Helper: distribute Or over And until no Or is above And anywhere *)
+
+(** [distribute prop] fully distributes Or over And until no Or is above And
+    anywhere. *)
+let rec distribute prop =
+  let rec changed p =
+    match p with
+    | Or (p1, And (q, r)) ->
+        let left = changed (Or (p1, q)) in
+        let right = changed (Or (p1, r)) in
+        changed (And (left, right))
+    | Or (And (q, r), p2) ->
+        let left = changed (Or (q, p2)) in
+        let right = changed (Or (r, p2)) in
+        changed (And (left, right))
+    | And (p1, p2) -> And (changed p1, changed p2)
+    | Or (p1, p2) -> Or (changed p1, changed p2)
+    | p -> p
+  in
+  let rec fix f x =
+    let x' = f x in
+    if x' = x then x else fix f x'
+  in
+  fix changed prop
+
+(** Flatten nested Ors into a list of literals *)
+let rec flatten_or = function
+  | Or (p1, p2) -> flatten_or p1 @ flatten_or p2
+  | p -> [ p ]
+
+(** Flatten nested Ands into a list of conjuncts *)
+let rec flatten_and = function
+  | And (p1, p2) -> flatten_and p1 @ flatten_and p2
+  | p -> [ p ]
+
+(** Step 1.4: Takes in a proposition and converts it to fully flattened CNF form
+*)
+let cnf_of_prop p =
+  let after_dist = p |> eliminate_implies |> to_nnf |> distribute in
+  (* 1. flatten to list of conjuncts *)
+  let clauses = flatten_and after_dist in
+  (* 2. for each clause, flatten Ors and rebuild as flat Or tree *)
+  let flat_clauses =
+    List.map
+      (fun clause ->
+        match flatten_or clause with
+        | [] -> failwith "Empty CNF clause"
+        | hd :: tl -> List.fold_left (fun acc c -> Or (acc, c)) hd tl)
+      clauses
+  in
+  (* 3. rebuild CNF as a binary And tree of flat clauses *)
+  match flat_clauses with
+  | [] -> failwith "Empty CNF"
+  | hd :: tl -> List.fold_left (fun acc c -> And (acc, c)) hd tl
 
 (* Step 2: Brute Force SAT (Satisfiability) Solver *)
 
@@ -537,18 +559,18 @@ type svar =
   | Pos of string
   | Neg of string
 
-let rec vars_of = function
-  | Or (p1, p2) -> vars_of p1 @ vars_of p2
+(* Flatten a CNF clause into a list of signed literals, ensuring flat
+   disjunctions *)
+let rec flatten_or_literals = function
+  | Or (p1, p2) -> flatten_or_literals p1 @ flatten_or_literals p2
   | Not (Var x) -> [ Neg x ]
   | Var x -> [ Pos x ]
-  | p ->
-      (* unexpected prop (not in cnf form) *)
-      failwith ("Invalid clause in CNF: " ^ print_prop p)
+  | p -> failwith ("Invalid literal in CNF clause: " ^ print_prop p)
 
 let rec clauses_of = function
   | And (p, q) -> clauses_of p @ clauses_of q
   | p ->
-      let clause = vars_of p in
+      let clause = flatten_or_literals p in
       if clause = [] then failwith "Invalid clause structure for DIMACS"
       else [ clause ]
 

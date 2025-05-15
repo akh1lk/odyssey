@@ -128,8 +128,9 @@ let eval_prop prop data =
       ^ "\n");
 
     print_string [ white ]
-      "To fully evaluate this proposition, please quantify the remaining \
-       variables in the command menu.\n";
+      "Note: variables will not be evaluated when simplifying. To fully \
+       evaluate this proposition, please quantify the remaining variables in \
+       the command menu.\n";
 
     false)
 
@@ -248,7 +249,6 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
           let _ = eval_prop p d in
           user_loop prop data
       | Some p, None ->
-          (* Create an empty data table and run simplification *)
           let empty_data = Odyssey.PropEval.create_data [] in
           let unquantified =
             Odyssey.PropEval.unquantified_variables empty_data p
