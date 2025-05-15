@@ -36,7 +36,7 @@ let rec prop_input () =
          assignments\n\
          'Equivalent' - check if your current proposition is logically \
          equivalent to another proposition you input\n\
-         'CNF' - export the proposition to Conjunctive Normal Form (CNF)";
+         'CNF' - export the proposition to Conjunctive Normal Form (CNF)\n";
       prop_input ()
   | _ -> (
       try
@@ -182,14 +182,14 @@ let rec user_loop (prop : Odyssey.PropEval.t option)
     "If you want to simplify your proposition based on the variables you have \
      and save that proposition, then type 'Simplify Prop' \n";
   print_string [ green ]
-    "If you like to export to LaTex via a copy-pastable string, then type \
-     'LaTex Export' \n";
+    "If you like to export to LaTeX via a copy-pastable string, then type \
+     'LaTeX Export' \n";
   print_string [ green ]
     ("If you would like to export the evaluation process in a bottom up \
-      approach, then type 'LaTex Evaluate Export'" ^ "\n");
+      approach, then type 'LaTeX Evaluate Export'" ^ "\n");
   print_string [ green ]
     "If you would like to export the proposition and evaluation process to a \
-     LaTex Document, then type 'LaTex Document Export'\n";
+     LaTeX Document, then type 'LaTeX Document Export'\n";
   print_string [ green ]
     "If you would like to export to CNF form, then type 'CNF' \n";
   print_string [ green ]
